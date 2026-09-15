@@ -1,0 +1,155 @@
+/* ============================================================
+ * 主页样式
+ * 对应原 css/style.css 的「主页」区块
+ * 仅调整选择器：#homePage -> .home-page（React 中不使用固定 id）
+ * ============================================================ */
+
+.home-page {
+  background-image: url("/images/img1.png");
+  cursor: default;
+}
+
+/* 主页标题栏 */
+.home-head {
+  position: absolute;
+  top: 2.2%;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.home-head h1 {
+  font-size: 30px;
+  letter-spacing: 10px;
+  color: var(--ink);
+  text-shadow: 0 2px 6px rgba(255, 255, 255, .6);
+}
+
+.home-head p {
+  font-size: 14px;
+  letter-spacing: 3px;
+  color: var(--ink-2);
+  margin-top: 4px;
+}
+
+/* 返回登录 */
+.back-link {
+  position: absolute;
+  top: 2.5%;
+  left: 2%;
+  z-index: 6;
+  font-size: 15px;
+  letter-spacing: 1px;
+  color: var(--ink-2);
+  text-decoration: none;
+  padding: 8px 16px;
+  background: var(--white-soft);
+  border-radius: 20px;
+  border: 1px solid rgba(184, 146, 79, .5);
+  transition: all .2s;
+}
+
+.back-link:hover {
+  color: var(--brick);
+  background: #fff8e8;
+}
+
+/* 三个可点击组件 —— 按原图位置覆盖 */
+.module {
+  position: absolute;
+  cursor: pointer;
+  z-index: 4;
+  background: rgba(255, 252, 244, 0.35);
+  border: 2px dashed rgba(168, 50, 31, 0.0);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: all .25s;
+  /* 原版这里是 div，重构后改用 <a> 承载跳转（键盘可聚焦），
+     必须显式去掉链接默认下划线，否则渲染结果与原版不一致。 */
+  text-decoration: none;
+}
+
+.module:hover {
+  background: rgba(255, 252, 244, 0.62);
+  border-color: var(--brick);
+  box-shadow: 0 10px 30px rgba(61, 43, 31, .25);
+  transform: translateY(-4px);
+}
+
+.module .tag {
+  font-size: 22px;
+  letter-spacing: 4px;
+  font-weight: 700;
+  color: var(--ink);
+  text-shadow: 0 1px 4px rgba(255, 255, 255, .7);
+  pointer-events: none;
+}
+
+.module .hint {
+  margin-top: 6px;
+  font-size: 13px;
+  letter-spacing: 1px;
+  color: var(--brick);
+  opacity: 0;
+  transition: opacity .2s;
+  pointer-events: none;
+}
+
+.module:hover .hint {
+  opacity: 1;
+}
+
+/* 位置：智慧科普（左上古鼎区） */
+#mod-science {
+  left: 6%;
+  top: 40%;
+  width: 300px;
+  height: 200px;
+}
+
+/* 位置：修复游戏（右上古瓶区） */
+#mod-game {
+  right: 5%;
+  top: 26%;
+  width: 280px;
+  height: 200px;
+}
+
+/* 位置：知识挑战（下方大殿区） */
+#mod-quiz {
+  left: 38%;
+  bottom: 7%;
+  width: 340px;
+  height: 170px;
+}
+
+/* ---------- 窄屏适配（原文件底部 media query 中属于主页的部分） ---------- */
+@media (max-width: 900px) {
+  .module {
+    width: 30% !important;
+    height: auto !important;
+    padding: 14px 4px;
+  }
+
+  #mod-science {
+    left: 2%;
+    top: 44%;
+  }
+
+  #mod-game {
+    right: 2%;
+    top: 30%;
+  }
+
+  #mod-quiz {
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 4%;
+    width: 60% !important;
+  }
+}

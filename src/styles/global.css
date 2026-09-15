@@ -1,0 +1,34 @@
+/* ============================================================
+ * 全局基础样式
+ * 对应原 css/style.css 的「重置 + 设计变量」部分
+ * ============================================================ */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --ink: #3d2b1f;            /* 墨色深棕 */
+  --ink-2: #5a3e2b;
+  --brick: #a8321f;          /* 朱砂红 */
+  --brick-dark: #7e2417;
+  --paper: #f3e9d2;          /* 宣纸米色 */
+  --gold: #b8924f;
+  --white-soft: rgba(255, 252, 244, 0.78);
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  font-family: "STKaiti", "KaiTi", "楷体", "SimSun", "宋体", serif;
+  color: var(--ink);
+  overflow: hidden;
+}
+
+/* 链接默认样式交由各页面样式表定义，这里只做兜底 */
+a {
+  color: inherit;
+}

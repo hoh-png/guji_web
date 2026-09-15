@@ -1,0 +1,163 @@
+/* ============================================================
+ * 登录页样式
+ * 对应原 css/style.css 的「登录页」区块
+ * 仅调整选择器：#loginPage -> .login-page（React 中不使用固定 id）
+ * ============================================================ */
+
+.login-page {
+  background-image: url("/images/img2.png");
+}
+
+/* 登录卡片（覆盖在原图面板位置，左中部） */
+.login-card {
+  position: absolute;
+  left: 4%;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 480px;
+  max-width: 92vw;
+  padding: 48px 52px 40px;
+  background: var(--white-soft);
+  border-radius: 6px;
+  border: 1px solid rgba(184, 146, 79, 0.55);
+  box-shadow: 0 18px 50px rgba(61, 43, 31, 0.28);
+  backdrop-filter: blur(3px);
+  text-align: center;
+}
+
+.login-title {
+  font-size: 34px;
+  letter-spacing: 6px;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.login-sub {
+  margin-top: 10px;
+  font-size: 16px;
+  letter-spacing: 2px;
+  color: var(--ink-2);
+  margin-bottom: 34px;
+}
+
+.field {
+  text-align: left;
+  margin-bottom: 18px;
+}
+
+.field label {
+  display: block;
+  font-size: 15px;
+  letter-spacing: 2px;
+  color: var(--ink-2);
+  margin-bottom: 8px;
+}
+
+.field input {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(184, 146, 79, 0.7);
+  border-radius: 4px;
+  outline: none;
+  transition: border-color .2s;
+}
+
+.field input:focus {
+  border-color: var(--brick);
+  box-shadow: 0 0 0 2px rgba(168, 50, 31, 0.15);
+}
+
+.row-opt {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: var(--ink-2);
+  margin: 6px 0 24px;
+}
+
+.row-opt label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.row-opt input[type="checkbox"] {
+  accent-color: var(--brick);
+  width: 15px;
+  height: 15px;
+}
+
+.row-opt a {
+  color: var(--brick);
+  text-decoration: none;
+}
+
+.row-opt a:hover {
+  text-decoration: underline;
+}
+
+.btn-login {
+  width: 100%;
+  padding: 14px 0;
+  font-size: 20px;
+  letter-spacing: 10px;
+  font-family: inherit;
+  color: #fff;
+  background: linear-gradient(135deg, var(--brick), var(--brick-dark));
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(168, 50, 31, 0.4);
+  transition: transform .15s, box-shadow .15s;
+  text-indent: 10px;
+}
+
+.btn-login:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 26px rgba(168, 50, 31, 0.5);
+}
+
+.btn-login:active {
+  transform: translateY(0);
+}
+
+.apply-link {
+  margin-top: 22px;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+
+.apply-link a {
+  color: var(--brick);
+  text-decoration: none;
+}
+
+.apply-link a:hover {
+  text-decoration: underline;
+}
+
+.copy {
+  position: absolute;
+  bottom: 18px;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  font-size: 13px;
+  color: rgba(61, 43, 31, 0.75);
+  letter-spacing: 1px;
+}
+
+/* ---------- 窄屏适配（原文件底部 media query 中属于登录页的部分） ---------- */
+@media (max-width: 900px) {
+  .login-card {
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 92vw;
+  }
+}

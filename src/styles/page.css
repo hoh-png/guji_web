@@ -1,0 +1,17 @@
+/* ============================================================
+ * 全屏页面骨架
+ * 原样式表中的 .page（两个页面共用），背景图由各页面样式表指定
+ * ============================================================ */
+
+.page {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

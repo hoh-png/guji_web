@@ -1,0 +1,76 @@
+/* ============================================================
+ * 子页面（智慧科普 / 修复游戏 / 知识挑战）通用样式
+ * 对应原 css/style.css 的「子页面」区块
+ * 三个 HTML 子页面共用同一套样式，因此在 React 中抽为共享样式表
+ * ============================================================ */
+
+.sub-page {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(160deg, #f7eeda 0%, #efe0c0 100%);
+  overflow-y: auto;
+}
+
+.sub-page .wrap {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 56px 32px 80px;
+}
+
+.sub-page h1 {
+  font-size: 36px;
+  letter-spacing: 8px;
+  color: var(--ink);
+  border-bottom: 2px solid var(--brick);
+  padding-bottom: 16px;
+  margin-bottom: 26px;
+}
+
+.sub-page .card {
+  background: #fffaf0;
+  border: 1px solid rgba(184, 146, 79, .5);
+  border-radius: 8px;
+  padding: 26px 30px;
+  margin-bottom: 20px;
+  box-shadow: 0 6px 18px rgba(61, 43, 31, .08);
+}
+
+.sub-page .card h2 {
+  color: var(--brick);
+  letter-spacing: 2px;
+  margin-bottom: 10px;
+  font-size: 22px;
+}
+
+.sub-page .card p {
+  line-height: 1.9;
+  color: var(--ink-2);
+  font-size: 16px;
+}
+
+.sub-page .card ul {
+  padding-left: 20px;
+  line-height: 2;
+  color: var(--ink-2);
+}
+
+.sub-page .btn-back {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 12px 30px;
+  font-size: 17px;
+  letter-spacing: 3px;
+  font-family: inherit;
+  color: #fff;
+  background: linear-gradient(135deg, var(--brick), var(--brick-dark));
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  text-decoration: none;
+  /* 原版这里是 <a>，本身就带 text-decoration:none；
+     重构后改用 <Link>（渲染为 <a>）承载路由跳转，同样需要显式去掉下划线。 */
+}
+
+.sub-page .btn-back:hover {
+  transform: translateY(-2px);
+}

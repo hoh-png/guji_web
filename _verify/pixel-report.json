@@ -1,0 +1,167 @@
+[
+  {
+    "key": "game__1280x800",
+    "sizeA": "1280x800",
+    "sizeB": "1280x800",
+    "sameSize": true,
+    "diffPixels": 0,
+    "totalPixels": 1024000,
+    "maxChannelDelta": 0,
+    "diffRatio": 0,
+    "sampleDiffs": []
+  },
+  {
+    "key": "game__1440x900",
+    "sizeA": "1440x900",
+    "sizeB": "1440x900",
+    "sameSize": true,
+    "diffPixels": 0,
+    "totalPixels": 1296000,
+    "maxChannelDelta": 0,
+    "diffRatio": 0,
+    "sampleDiffs": []
+  },
+  {
+    "key": "game__820x900",
+    "sizeA": "820x900",
+    "sizeB": "820x900",
+    "sameSize": true,
+    "diffPixels": 0,
+    "totalPixels": 738000,
+    "maxChannelDelta": 0,
+    "diffRatio": 0,
+    "sampleDiffs": []
+  },
+  {
+    "key": "home__1280x800",
+    "sizeA": "1280x800",
+    "sizeB": "1280x800",
+    "sameSize": true,
+    "diffPixels": 0,
+    "totalPixels": 1024000,
+    "maxChannelDelta": 0,
+    "diffRatio": 0,
+    "sampleDiffs": []
+  },
+  {
+    "key": "home__1440x900",
+    "sizeA": "1440x900",
+    "sizeB": "1440x900",
+    "sameSize": true,
+    "diffPixels": 0,
+    "totalPixels": 1296000,
+    "maxChannelDelta": 0,
+    "diffRatio": 0,
+    "sampleDiffs": []
+  },
+  {
+    "key": "home__820x900",
+    "sizeA": "820x900",
+    "sizeB": "820x900",
+    "sameSize": true,
+    "diffPixels": 0,
+    "totalPixels": 738000,
+    "maxChannelDelta": 0,
+    "diffRatio": 0,
+    "sampleDiffs": []
+  },
+  {
+    "key": "login__1280x800",
+    "sizeA": "1280x800",
+    "sizeB": "1280x800",
+    "sameSize": true,
+    "diffPixels": 0,
+    "totalPixels": 1024000,
+    "maxChannelDelta": 0,
+    "diffRatio": 0,
+    "sampleDiffs": []
+  },
+  {
+    "key": "login__1440x900",
+    "sizeA": "1440x900",
+    "sizeB": "1440x900",
+    "sameSize": true,
+    "diffPixels": 0,
+    "totalPixels": 1296000,
+    "maxChannelDelta": 0,
+    "diffRatio": 0,
+    "sampleDiffs": []
+  },
+  {
+    "key": "login__820x900",
+    "sizeA": "820x900",
+    "sizeB": "820x900",
+    "sameSize": true,
+    "diffPixels": 0,
+    "totalPixels": 738000,
+    "maxChannelDelta": 0,
+    "diffRatio": 0,
+    "sampleDiffs": []
+  },
+  {
+    "key": "quiz__1280x800",
+    "sizeA": "1280x800",
+    "sizeB": "1280x800",
+    "sameSize": true,
+    "diffPixels": 0,
+    "totalPixels": 1024000,
+    "maxChannelDelta": 0,
+    "diffRatio": 0,
+    "sampleDiffs": []
+  },
+  {
+    "key": "quiz__1440x900",
+    "sizeA": "1440x900",
+    "sizeB": "1440x900",
+    "sameSize": true,
+    "diffPixels": 0,
+    "totalPixels": 1296000,
+    "maxChannelDelta": 0,
+    "diffRatio": 0,
+    "sampleDiffs": []
+  },
+  {
+    "key": "quiz__820x900",
+    "sizeA": "820x900",
+    "sizeB": "820x900",
+    "sameSize": true,
+    "diffPixels": 0,
+    "totalPixels": 738000,
+    "maxChannelDelta": 0,
+    "diffRatio": 0,
+    "sampleDiffs": []
+  },
+  {
+    "key": "science__1280x800",
+    "sizeA": "1280x800",
+    "sizeB": "1280x800",
+    "sameSize": true,
+    "diffPixels": 0,
+    "totalPixels": 1024000,
+    "maxChannelDelta": 0,
+    "diffRatio": 0,
+    "sampleDiffs": []
+  },
+  {
+    "key": "science__1440x900",
+    "sizeA": "1440x900",
+    "sizeB": "1440x900",
+    "sameSize": true,
+    "diffPixels": 0,
+    "totalPixels": 1296000,
+    "maxChannelDelta": 0,
+    "diffRatio": 0,
+    "sampleDiffs": []
+  },
+  {
+    "key": "science__820x900",
+    "sizeA": "820x900",
+    "sizeB": "820x900",
+    "sameSize": true,
+    "diffPixels": 0,
+    "totalPixels": 738000,
+    "maxChannelDelta": 0,
+    "diffRatio": 0,
+    "sampleDiffs": []
+  }
+]

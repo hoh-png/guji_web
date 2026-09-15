@@ -1,0 +1,27 @@
+/* ============================================================
+ * 提示浮层（登录页短信提示、操作反馈）
+ * 对应原 css/style.css 的 .toast
+ * ============================================================ */
+
+.toast {
+  position: fixed;
+  top: 5%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-20px);
+  padding: 12px 28px;
+  background: var(--ink);
+  color: #f6ecd2;
+  border-radius: 4px;
+  font-size: 15px;
+  letter-spacing: 1px;
+  opacity: 0;
+  pointer-events: none;
+  transition: all .35s;
+  z-index: 999;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .25);
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
