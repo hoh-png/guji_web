@@ -1,4 +1,6 @@
-import { Link } from 'react-router-dom'
+import { useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { getCurrentUser, logout } from '../../api/loginApi.js'
 import ModuleCard from '../../components/ModuleCard/ModuleCard.jsx'
 import { HOME_MODULES } from '../../constants/homeModules.js'
 import { ROUTES } from '../../constants/routes.js'
@@ -14,6 +16,25 @@ import './HomePage.css'
  */
 export default function HomePage() {
   usePageTitle('古迹修复系统 · 功能主页')
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    let cancelled = false
+
+    getCurrentUser().then((result) => {
+      if (!cancelled && !result.ok) navigate(ROUTES.LOGIN, { replace: true })
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [navigate])
+
+  async function handleLogout(event) {
+    event.preventDefault()
+    await logout()
+    navigate(ROUTES.LOGIN, { replace: true })
+  }
 
   return (
     <div className="page home-page">
@@ -24,7 +45,7 @@ export default function HomePage() {
       </div>
 
       {/* 返回登录 */}
-      <Link className="back-link" to={ROUTES.LOGIN}>
+      <Link className="back-link" to={ROUTES.LOGIN} onClick={handleLogout}>
         ← 返回登录
       </Link>
 
