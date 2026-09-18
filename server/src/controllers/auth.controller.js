@@ -66,8 +66,16 @@ export async function register(req, res, next) {
     }
 
     const passwordHash = await bcrypt.hash(password, 12)
-    const user = await prisma.user.create({
-      data: { username, passwordHash },
+    const user = await prisma.$transaction(async (tx) => {
+      const createdUser = await tx.user.create({
+        data: { username, passwordHash },
+      })
+
+      await tx.wallet.create({
+        data: { userId: createdUser.id },
+      })
+
+      return createdUser
     })
 
     setAuthCookie(res, user.id)
