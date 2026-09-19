@@ -1,31 +1,32 @@
-# 依赖
+# ---------- 依赖 ----------
 node_modules
 
-# 构建产物
+# ---------- 构建产物 ----------
 dist
 dist-ssr
 
-# 本地调试与编辑器
-*.local
+# ---------- 本地缓存与临时文件 ----------
+.npm-cache
 .vite
-.DS_Store
-.idea
-.vscode/*
-!.vscode/extensions.json
-
-# 日志
+*.local
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# 本地 npm 缓存（沙箱环境下为避免写入用户目录而重定向到项目内）
-.npm-cache
+# ---------- 编辑器 / 系统 ----------
+.DS_Store
+Thumbs.db
+.idea
+.vscode/*
+!.vscode/extensions.json
 
-# 重构保真度验证材料（原版快照、对照构建产物、截图等，可随时删除）
-_original_site
-_verify/original
-_verify/ref
-_verify/chrome-profile*
+# ---------- 验证脚本的运行时产物 ----------
+# 脚本本身（_verify/scripts/）保留在库里，方便日后复查；
+# 下面这些是运行它们时产生的：浏览器临时 profile、截图、量测报告。
+_verify/ws-*
 _verify/shots
+_verify/*.json
+_verify/*.png
 _verify/*.log

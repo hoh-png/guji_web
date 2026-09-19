@@ -30,12 +30,23 @@ export const gameContent = {
       ],
     },
     {
+      id: 'enter-workshop',
+      title: '开始修复',
+      blocks: [
+        {
+          type: 'paragraph',
+          text: '修复工坊已经开放：在商店兑换趁手的工具与场所后，即可进入工坊，把工具摆到操作台上开始作业。',
+        },
+        { type: 'link-button', label: '进入修复工坊 →', to: 'WORKSHOP' },
+      ],
+    },
+    {
       id: 'in-development',
       title: '正在开发中',
       blocks: [
         {
           type: 'paragraph',
-          text: '游戏关卡、积分排行与修复成就系统正在加紧开发，敬请期待上线体验！',
+          text: '文物素材与各道工序的交互逻辑正在加紧开发，敬请期待上线体验！',
         },
       ],
     },

@@ -74,3 +74,24 @@
 .sub-page .btn-back:hover {
   transform: translateY(-2px);
 }
+
+/* 卡片内的跳转按钮（如「进入修复工坊」），与 btn-back 同源但更紧凑 */
+.sub-page .inline-cta {
+  display: inline-block;
+  margin-top: 14px;
+  padding: 11px 26px;
+  font-size: 16px;
+  letter-spacing: 2px;
+  text-decoration: none;
+  color: #fff;
+  background: linear-gradient(135deg, var(--brick), var(--brick-dark));
+  border: none;
+  border-radius: 5px;
+  box-shadow: 0 6px 16px rgba(168, 50, 31, 0.3);
+  transition: transform .15s, box-shadow .15s;
+}
+
+.sub-page .inline-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px rgba(168, 50, 31, 0.4);
+}

@@ -1,0 +1,290 @@
+/* ============================================================
+ * 修复工坊页（修复文物）
+ *
+ * 构图：场所铺满背景 → 桌面居中偏下作操作台 → 可交互道具集中在上方墙面区。
+ *
+ * 背景图上方约三分之一是干净的墙面，下方三分之一堆着箱子与地面、颜色偏深，
+ * 因此文物占位牌与工具排全部安排在上方；下方只留桌子作为工作台背景。
+ * ============================================================ */
+
+.workshop {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(160deg, #f7eeda 0%, #efe0c0 100%);
+  /* 窗口过矮时纵向滚动，而不是把操作台压扁 */
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+/* ---------------- 顶部信息条 ---------------- */
+.workshop-head {
+  position: relative;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: clamp(10px, 1.4vh, 18px) clamp(18px, 2.4vw, 40px);
+  background: linear-gradient(180deg, rgba(247, 238, 218, 0.97), rgba(247, 238, 218, 0.86));
+  border-bottom: 1px solid rgba(184, 146, 79, 0.5);
+  box-shadow: 0 6px 18px rgba(61, 43, 31, 0.08);
+}
+
+.workshop-title {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.workshop-title h1 {
+  font-size: clamp(20px, 1.9vw, 28px);
+  letter-spacing: 6px;
+  color: var(--ink);
+}
+
+.workshop-loc {
+  font-size: clamp(12px, 1vw, 14px);
+  letter-spacing: 2px;
+  color: var(--ink-2);
+}
+
+.workshop-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* 信息条里的操作提示（原来是舞台底部的一条浮层，压在箱子与地面上） */
+.workshop-tip {
+  max-width: 30vw;
+  font-size: 12px;
+  letter-spacing: 1px;
+  line-height: 1.5;
+  color: var(--ink-2);
+  text-align: right;
+}
+
+/* ---------------- 操作舞台 ---------------- */
+.workshop-stage {
+  position: relative;
+  flex: 1;
+  min-height: 300px; /* 舞台不塌陷：窗口过矮时整页滚动，而不是把操作台压成 0 高 */
+  overflow: hidden;
+  touch-action: none; /* 触屏拖拽时不要触发页面滚动 */
+  user-select: none;
+}
+
+/* 场所背景：铺满舞台 */
+.stage-venue {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  pointer-events: none;
+}
+
+/* 桌面：垂直居中偏下，作为操作台 */
+.stage-desk {
+  position: absolute;
+  left: 50%;
+  top: 77%;
+  transform: translate(-50%, -50%);
+  max-width: min(70vw, 820px);
+  height: auto;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+/* ---------------- 文物占位区 ----------------
+ * 舞台右侧：下移到工具排下方，避免与横铺到右端的工具排重叠，
+ * 同时仍留在上方干净墙面、不碰下方杂乱的箱子与地面。
+ * 素材到位后替换为真实文物与修复交互。
+ */
+.artifact-slot {
+  position: absolute;
+  right: clamp(16px, 3vw, 52px);
+  top: 45%;
+  transform: translateY(-50%);
+  width: clamp(170px, 15vw, 250px);
+  height: clamp(120px, 12vw, 190px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 12;
+  pointer-events: none;
+}
+
+.artifact-inner {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 2px dashed rgba(168, 50, 31, 0.42);
+  border-radius: 10px;
+  background: rgba(255, 252, 244, 0.42);
+  box-shadow: 0 8px 20px rgba(61, 43, 31, 0.12);
+  backdrop-filter: blur(1px);
+}
+
+.artifact-label {
+  font-size: clamp(14px, 1.2vw, 17px);
+  letter-spacing: 3px;
+  color: var(--brick);
+  font-weight: 700;
+}
+
+.artifact-note {
+  font-size: 12px;
+  letter-spacing: 1px;
+  color: var(--ink-2);
+}
+
+/* ---------------- 工具排 ----------------
+ * 位置参照：上方墙面、横向铺开到左右两端，8 件工具均匀分布（space-around），
+ * 与右侧文物牌错开（文物牌下移到它下方）。
+ * 用 left/right 定位而非固定宽度，工具随窗口宽度自动铺开、间距均匀。
+ */
+.tool-tray {
+  position: absolute;
+  left: 13%;
+  right: 18%;
+  top: 9%;
+  z-index: 20;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: flex-end;
+  /* 只用 space-around 均分，不要再加 gap —— 两者叠在一起会把整排挤到左边 */
+  justify-content: space-around;
+  pointer-events: none; /* 只有工具图片本身接收指针事件 */
+}
+
+/* 没有可用工具时的提示 */
+.tray-empty {
+  font-size: 13px;
+  letter-spacing: 1px;
+  line-height: 1.8;
+  color: var(--ink-2);
+  background: rgba(255, 252, 244, 0.86);
+  border: 1px dashed rgba(184, 146, 79, 0.6);
+  border-radius: 8px;
+  padding: 10px 16px;
+  pointer-events: auto;
+}
+
+.tray-empty a {
+  color: var(--brick);
+}
+
+.tool-sprite {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  /* 边框与底色全部透明：道具直接落在画面上，不出现割裂的框 */
+  border: none;
+  background: transparent;
+  pointer-events: none;
+  padding-bottom: 20px; /* 给下方固定的名称说明带留出位置 */
+}
+
+/* 只有图片可交互、可拖动 */
+.tool-sprite .tool-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  cursor: grab;
+  pointer-events: auto;
+  touch-action: none;
+  /*
+   * scale 单独用 CSS 属性（不写进 transform），
+   * 这样拖动时由 JS 设置的 translate3d 不会把放大效果覆盖掉。
+   * 1.1 = 图片整体比原来大 10%。
+   */
+  scale: 1.1;
+  /* 轻微投影让道具「贴」在画面上，而不是飘着 */
+  filter: drop-shadow(0 6px 10px rgba(61, 43, 31, 0.22));
+  /* 松手后平滑弹回原位 */
+  transition: transform .28s cubic-bezier(.22, .8, .3, 1);
+  will-change: transform;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.tool-sprite .tool-image:active {
+  cursor: grabbing;
+  transition: none; /* 拖动时不加过渡，保证跟手 */
+}
+
+/*
+ * 名称留在原位，不随图片移动。
+ * 用绝对定位把名称钉在这排工具的底部，形成一条整齐的说明带：
+ * 拖动上方图片时名称纹丝不动，一眼就能看出每个工具原本在哪。
+ */
+.tool-sprite .tool-name {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 4px;
+  /* 12px × 1.15 ≈ 13.8px，比原来大 15% */
+  font-size: 13.8px;
+  letter-spacing: 1px;
+  color: var(--ink);
+  background: rgba(255, 252, 244, 0.82);
+  border-radius: 3px;
+  padding: 1px 7px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* 选中态：只做轻微提亮，不加边框 */
+.tool-sprite.is-selected .tool-name {
+  color: var(--brick);
+  background: rgba(255, 252, 244, 0.96);
+  box-shadow: 0 2px 8px rgba(61, 43, 31, 0.18);
+}
+
+.tool-sprite:focus-visible {
+  outline: none;
+}
+
+.tool-sprite:focus-visible .tool-name {
+  outline: 2px solid var(--brick);
+  outline-offset: 1px;
+}
+
+/* ---------------- 窄屏适配 ---------------- */
+@media (max-width: 860px) {
+  .stage-desk {
+    max-width: 84vw;
+  }
+
+  /* 工具排窄屏下允许换行，并把右侧文物牌收窄 */
+  .tool-tray {
+    width: 72vw;
+    flex-wrap: wrap;
+    row-gap: 12px;
+  }
+
+  .artifact-slot {
+    right: 12px;
+    top: 26%;
+    width: 128px;
+    height: 96px;
+  }
+
+  .workshop-tip {
+    display: none;
+  }
+}
