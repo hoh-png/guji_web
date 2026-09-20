@@ -1,0 +1,312 @@
+/* ============================================================
+ * 智慧科普 · 卷轴纸版式
+ *
+ * 依据 public/images/science/science-bg.jpg（2073×1280）：
+ * 画好蓝金边框的卷轴纸，顶部有一道空白标题横幅，底部一圈文房纹样。
+ *
+ * 做法：纸面按原始比例等比缩放（整张纸永远完整可见，边框不会被裁），
+ * 纸面上用百分比定位出「目录栏」与「正文栏」。
+ * 只有正文栏滚动，背景与目录都不动 —— 文档站 / 飞书文档的做法。
+ * 窗口比例不同时，用米色补白填满两侧。
+ * ============================================================ */
+
+.paper-scene {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 补白取纸面底色，看不出接缝 */
+  background: #f4ecd9;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default;
+}
+
+/*
+ * 纸面：锁住背景图比例，宽高都限制在容器内，
+ * 因此永远完整显示、不会被裁。
+ */
+.paper-sheet {
+  position: relative;
+  width: 100%;
+  max-width: calc(100vh * 2073 / 1280);
+  max-height: 100%;
+  box-shadow: 0 10px 40px rgba(61, 43, 31, 0.16);
+}
+
+.paper-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.paper-sheet img {
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* ---------------- 返回 ----------------
+ * 按钮外观完全由图片决定（public/images/science/back.png：棕色圆底 + 箭头），
+ * 这里只负责位置与大小，以及悬浮 / 按下时的深浅变化 ——
+ * 不加背景、不加描边、不加阴影，避免和图片本身重复。
+ */
+.paper-back {
+  position: absolute;
+  display: block;
+  /* 尺寸随纸面缩放：与背景上原有箭头的比例相当 */
+  width: clamp(30px, 3.4vw, 68px);
+  height: clamp(30px, 3.4vw, 68px);
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: filter .15s, transform .1s;
+  z-index: 3;
+}
+
+.paper-back img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  -webkit-user-drag: none;
+}
+
+/* 悬浮：略深 */
+.paper-back:hover {
+  filter: brightness(1.12);
+}
+
+/* 按下：更深，并轻微下沉 */
+.paper-back:active {
+  filter: brightness(0.9);
+  transform: scale(0.96);
+}
+
+.paper-back:focus {
+  outline: none;
+}
+
+.paper-back:focus-visible {
+  outline: 2px solid #8c3a2e;
+  outline-offset: 4px;
+  border-radius: 50%;
+}
+
+/* ---------------- 顶部标题横幅 ----------------
+ * 横幅是背景上的一圈描边留白，标题居中放进去。
+ */
+.paper-title-bar {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.paper-title-bar h1 {
+  margin: 0;
+  font-size: clamp(18px, 2.1vw, 42px);
+  letter-spacing: .22em;
+  color: #8c3a2e;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+  white-space: nowrap;
+}
+
+/* ---------------- 左栏：目录（固定） ---------------- */
+.paper-nav {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: .25em;
+  overflow-y: auto;
+  padding-right: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(150, 110, 62, 0.4) transparent;
+  z-index: 2;
+}
+
+.paper-nav::-webkit-scrollbar {
+  width: 6px;
+}
+
+.paper-nav::-webkit-scrollbar-thumb {
+  background: rgba(150, 110, 62, 0.35);
+  border-radius: 3px;
+}
+
+.paper-nav-item {
+  position: relative;
+  padding: .5em .4em .5em .95em;
+  font-family: inherit;
+  font-size: clamp(11px, .98vw, 19px);
+  line-height: 1.55;
+  letter-spacing: .06em;
+  text-align: left;
+  color: #6d5a44;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color .15s, background .15s;
+}
+
+/* 当前小节：左侧一道印泥色竖条 + 加深文字 */
+.paper-nav-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%) scaleY(0);
+  width: 3px;
+  height: 62%;
+  background: #a8321f;
+  border-radius: 2px;
+  transition: transform .18s;
+}
+
+.paper-nav-item:hover {
+  color: #8c3a2e;
+  background: rgba(243, 231, 201, 0.7);
+}
+
+.paper-nav-item.on {
+  color: #8c3a2e;
+  font-weight: 700;
+  background: rgba(243, 231, 201, 0.85);
+}
+
+.paper-nav-item.on::before {
+  transform: translateY(-50%) scaleY(1);
+}
+
+/* 「拓展」类条目压暗一档，与正文条目区分开 */
+.paper-nav-item.is-extra {
+  font-size: clamp(10px, .9vw, 17px);
+  color: #8a7a62;
+}
+
+.paper-nav-item.is-extra.on {
+  color: #8c3a2e;
+}
+
+.paper-nav-item:focus {
+  outline: none;
+}
+
+.paper-nav-item:focus-visible {
+  outline: 2px solid #8c3a2e;
+  outline-offset: 2px;
+}
+
+/* ---------------- 右栏：正文（滚动） ---------------- */
+.paper-content {
+  position: absolute;
+  overflow-y: auto;
+  padding-right: 14px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(150, 110, 62, 0.45) transparent;
+  z-index: 2;
+}
+
+.paper-content::-webkit-scrollbar {
+  width: 9px;
+}
+
+.paper-content::-webkit-scrollbar-thumb {
+  background: rgba(150, 110, 62, 0.4);
+  border-radius: 5px;
+}
+
+/* 每个小节 */
+.paper-section {
+  padding-bottom: 2.2em;
+}
+
+/* 分类标签：标题上方的一行小字 */
+.paper-section-tag {
+  margin: 0 0 .5em;
+  font-size: clamp(10px, .85vw, 16px);
+  letter-spacing: .22em;
+  color: #9a8562;
+}
+
+.paper-section h2 {
+  margin: 0 0 .35em;
+  font-size: clamp(15px, 1.35vw, 26px);
+  letter-spacing: .12em;
+  color: #8c3a2e;
+  font-weight: 700;
+}
+
+/* 小节之间一道淡描边，滚动时能看出分界 */
+.paper-section + .paper-section {
+  padding-top: 1.6em;
+  border-top: 1px solid rgba(184, 146, 79, 0.32);
+}
+
+.paper-subtitle {
+  margin: 0 0 1em;
+  font-size: clamp(11px, .95vw, 18px);
+  letter-spacing: .14em;
+  color: #b8924f;
+}
+
+.paper-paragraph {
+  margin: 0 0 1em;
+  font-size: clamp(12px, 1.02vw, 19px);
+  line-height: 1.95;
+  color: #4a3527;
+  letter-spacing: .04em;
+  text-align: justify;
+}
+
+.paper-list {
+  margin: 0 0 1em;
+  padding: 0;
+  list-style: none;
+}
+
+.paper-list li {
+  position: relative;
+  padding-left: 1.5em;
+  margin-bottom: .6em;
+  font-size: clamp(12px, 1.02vw, 19px);
+  line-height: 1.9;
+  color: #4a3527;
+  letter-spacing: .04em;
+}
+
+/* 列表点：小印泥色圆点 */
+.paper-list li::before {
+  content: '';
+  position: absolute;
+  left: .35em;
+  top: .8em;
+  width: .38em;
+  height: .38em;
+  background: #a8321f;
+  border-radius: 50%;
+}
+
+.paper-list strong {
+  color: #8c3a2e;
+  font-weight: 700;
+}
+
+/* 提示条：左侧一道描金竖边 */
+.paper-note {
+  margin: 0 0 1em;
+  padding: .7em 1.1em;
+  font-size: clamp(12px, 1vw, 18px);
+  line-height: 1.85;
+  color: #7c6848;
+  letter-spacing: .05em;
+  background: rgba(243, 231, 201, 0.75);
+  border-left: 3px solid #b8924f;
+  border-radius: 0 6px 6px 0;
+}

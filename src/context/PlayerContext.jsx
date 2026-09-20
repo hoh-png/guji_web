@@ -9,6 +9,7 @@ import {
   equipDesk,
   equipVenue,
   purchaseDesk,
+  purchaseRelic,
   purchaseTool,
   purchaseVenue,
   readPlayerState,
@@ -78,6 +79,26 @@ export function PlayerProvider({ children }) {
       buyTool: (id) => buy('tool', id),
       buyVenue: (id) => buy('venue', id),
       buyDesk: (id) => buy('desk', id),
+      /** 购买文物：扣元宝，买下即入馆藏 */
+      buyRelic: (id) => {
+        setState((prev) => {
+          const { state: next, result } = purchaseRelic(prev, id)
+          switch (result) {
+            case PURCHASE_RESULT.OK:
+              showNotice('珍藏成功，已收入馆藏', 'success')
+              return next
+            case PURCHASE_RESULT.ALREADY_OWNED:
+              showNotice('这件文物已在你的馆藏中', 'info')
+              return prev
+            case PURCHASE_RESULT.NOT_ENOUGH_POINTS:
+              showNotice('元宝不足，可在商店用铜钱兑换元宝', 'error')
+              return prev
+            default:
+              showNotice('文物不存在', 'error')
+              return prev
+          }
+        })
+      },
       /**
        * 把工具设为使用中。
        * 同类工具是升级关系，装备新的一件会自动换下同类的旧的一件。

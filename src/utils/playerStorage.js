@@ -17,6 +17,7 @@ import {
   getVenueById,
   getDeskById,
 } from '../data/props.js'
+import { INGOT_PRICES, STARTER_RELIC_IDS, getRelicById } from '../data/relics.js'
 
 const STORAGE_KEY = 'guji-web:player-state:v1'
 
@@ -49,6 +50,7 @@ export function createInitialState() {
     equippedToolIds: [...STARTER_TOOL_IDS],
     equippedVenueId: DEFAULT_VENUE_ID,
     equippedDeskId: DEFAULT_DESK_ID,
+    ownedRelicIds: [...STARTER_RELIC_IDS], // 文物：用元宝购买，初始为空
     createdAt: new Date().toISOString(),
   }
 }
@@ -109,6 +111,7 @@ function mergeWithDefaults(raw) {
     equippedToolIds: equippedToolIds.length ? equippedToolIds : [...base.equippedToolIds],
     equippedVenueId: getVenueById(raw.equippedVenueId) ? raw.equippedVenueId : base.equippedVenueId,
     equippedDeskId: getDeskById(raw.equippedDeskId) ? raw.equippedDeskId : base.equippedDeskId,
+    ownedRelicIds: normalizeIds(raw.ownedRelicIds, base.ownedRelicIds).filter((id) => getRelicById(id)),
     createdAt: raw.createdAt || base.createdAt,
   }
 }
@@ -219,6 +222,26 @@ export function toggleEquipTool(state, toolId) {
 /** 某类工具当前正在使用的那一件 */
 export function getEquippedToolInGroup(state, groupId) {
   return state.equippedToolIds.find((id) => getToolById(id)?.groupId === groupId) || null
+}
+
+/**
+ * 购买文物：扣元宝并登记所有权。
+ * 文物是收藏品，没有「装备」概念，买下即入库。
+ */
+export function purchaseRelic(state, relicId) {
+  const relic = getRelicById(relicId)
+  if (!relic) return { state, result: PURCHASE_RESULT.NOT_FOUND }
+
+  const owned = state.ownedRelicIds || []
+  if (owned.includes(relicId)) return { state, result: PURCHASE_RESULT.ALREADY_OWNED }
+
+  const price = INGOT_PRICES[relic.grade] ?? 0
+  if (state.ingot < price) return { state, result: PURCHASE_RESULT.NOT_ENOUGH_POINTS }
+
+  return {
+    state: { ...state, ingot: state.ingot - price, ownedRelicIds: [...owned, relicId] },
+    result: PURCHASE_RESULT.OK,
+  }
 }
 
 /** 切换当前场所（仅限已拥有） */
