@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import InlineLink from '../../components/InlineLink/InlineLink.jsx'
 import Toast from '../../components/Toast/Toast.jsx'
 import {
-  APPLY_ACCOUNT_TIP,
   FORGOT_PASSWORD_TIP,
+  getCurrentUser,
   submitLogin,
+  submitRegister,
 } from '../../api/loginApi.js'
 import { ROUTES } from '../../constants/routes.js'
 import usePageTitle from '../../hooks/usePageTitle.js'
@@ -14,10 +15,8 @@ import './LoginPage.css'
 /**
  * 登录页（对应原 login.html）
  *
- * 行为与原版 js/main.js 完全一致：
- *  1. 提交时先校验「账号 / 密码」是否填写，为空则提示并中断；
- *  2. 校验通过 → 提示「登录成功，正在进入系统…」，600ms 后跳转主页；
- *  3. 「忘记密码」「立即申请修复师权限」为提示型链接，不跳转。
+ * 保留原登录卡片布局，在卡片内切换登录和注册模式。
+ * 成功后由后端设置 HttpOnly Cookie，再跳转到功能主页。
  */
 export default function LoginPage() {
   usePageTitle('古迹修复系统 · 登录')
@@ -29,20 +28,30 @@ export default function LoginPage() {
   const [account, setAccount] = useState('')
   const [password, setPassword] = useState('')
   const [remember, setRemember] = useState(false)
+  const [mode, setMode] = useState('login')
+  const isRegister = mode === 'register'
 
   // 组件卸载时清掉待执行的跳转定时器，避免离开登录页后仍触发跳转
   useEffect(() => {
+    let cancelled = false
+
+    getCurrentUser().then((result) => {
+      if (!cancelled && result.ok) navigate(ROUTES.HOME, { replace: true })
+    })
+
     return () => {
+      cancelled = true
       if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current)
     }
-  }, [])
+  }, [navigate])
 
   async function handleSubmit(event) {
     event.preventDefault()
 
-    const result = await submitLogin({
+    const submit = isRegister ? submitRegister : submitLogin
+    const result = await submit({
       account: account.trim(),
-      password: password.trim(),
+      password,
     })
 
     toastRef.current?.show(result.tip)
@@ -77,7 +86,7 @@ export default function LoginPage() {
               type="password"
               id="password"
               placeholder="请输入您的登录密码"
-              autoComplete="current-password"
+              autoComplete={isRegister ? 'new-password' : 'current-password'}
               value={password}
               onChange={(event) => setPassword(event.target.value)}
             />
@@ -99,14 +108,21 @@ export default function LoginPage() {
           </div>
 
           <button type="submit" className="btn-login">
-            登录系统
+            {isRegister ? '注册并登录' : '登录系统'}
           </button>
         </form>
 
         <div className="apply-link">
-          还没有账号？
-          <InlineLink onClick={() => toastRef.current?.show(APPLY_ACCOUNT_TIP)}>
-            立即申请修复师权限
+          {isRegister ? '已经有账号？' : '还没有账号？'}
+          <InlineLink
+            onClick={() => {
+              setMode(isRegister ? 'login' : 'register')
+              toastRef.current?.show(
+                isRegister ? '已切换到登录' : '请输入账号和至少 8 位密码完成注册',
+              )
+            }}
+          >
+            {isRegister ? '返回登录' : '立即注册修复师账号'}
           </InlineLink>
         </div>
       </div>

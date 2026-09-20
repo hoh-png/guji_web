@@ -2,8 +2,14 @@ import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { usePlayer } from '../../context/PlayerContext.jsx'
 import { DESKS, TOOLS, VENUES } from '../../data/props.js'
-import { SHOP_CANVAS, SHOP_CATEGORIES, SHOP_SLOT_COUNT, getSlotPosition } from '../../data/shop.js'
-import { COPPER_TIERS, CURRENCY_TIERS } from '../../utils/playerStorage.js'
+import {
+  COPPER_TIERS,
+  CURRENCY_TIERS,
+  SHOP_CANVAS,
+  SHOP_CATEGORIES,
+  SHOP_SLOT_COUNT,
+  getSlotPosition,
+} from '../../data/shop.js'
 import usePageTitle from '../../hooks/usePageTitle.js'
 import useAutoNotice from '../../hooks/useAutoNotice.js'
 import ShopCell from './ShopCell.jsx'

@@ -1,29 +1,51 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import {
-  PURCHASE_RESULT,
-  addCurrency,
-  buyCopperWithIngot,
-  buyIngotWithCopper,
   clearPlayerState,
   createInitialState,
   equipDesk,
   equipVenue,
-  purchaseDesk,
-  purchaseTool,
-  purchaseVenue,
   readPlayerState,
   toggleEquipTool,
   updateProfile,
   writePlayerState,
 } from '../utils/playerStorage.js'
+import {
+  exchangePlayerCurrency,
+  getPlayerState,
+  grantDevelopmentCurrency,
+  purchasePlayerItem,
+  resetDevelopmentPlayer,
+} from '../api/playerApi.js'
 
 const PlayerContext = createContext(null)
+
+function mergeServerState(current, data) {
+  const ownedToolIds = data.ownedToolIds || []
+  const ownedVenueIds = data.ownedVenueIds || []
+  const ownedDeskIds = data.ownedDeskIds || []
+
+  return {
+    ...current,
+    copper: data.wallet?.coins ?? current.copper,
+    ingot: data.wallet?.ingots ?? current.ingot,
+    ownedToolIds,
+    ownedVenueIds,
+    ownedDeskIds,
+    equippedToolIds: current.equippedToolIds.filter((id) => ownedToolIds.includes(id)),
+    equippedVenueId: ownedVenueIds.includes(current.equippedVenueId)
+      ? current.equippedVenueId
+      : ownedVenueIds[0],
+    equippedDeskId: ownedDeskIds.includes(current.equippedDeskId)
+      ? current.equippedDeskId
+      : ownedDeskIds[0],
+  }
+}
 
 /**
  * 玩家状态容器。
  *
- * 目前状态保存在浏览器 localStorage（见 utils/playerStorage.js），
- * 接入后端后只需替换该模块的读写实现，本组件与页面都不用改。
+ * 钱包与商店所有权由后端保存；个人资料和装备选择仍保存在浏览器，
+ * 因此现有页面组件不需要感知数据来源差异。
  */
 export function PlayerProvider({ children }) {
   const [state, setState] = useState(() => readPlayerState())
@@ -40,31 +62,40 @@ export function PlayerProvider({ children }) {
 
   const clearNotice = useCallback(() => setNotice(null), [])
 
+  const syncPlayer = useCallback(async () => {
+    const result = await getPlayerState()
+    if (result.ok && result.data) {
+      setState((current) => mergeServerState(current, result.data))
+      return true
+    }
+    return false
+  }, [])
+
+  useEffect(() => {
+    syncPlayer()
+    window.addEventListener('guji-auth-changed', syncPlayer)
+    return () => window.removeEventListener('guji-auth-changed', syncPlayer)
+  }, [syncPlayer])
+
   /** 统一的购买处理：把纯逻辑的结果翻译成提示语 */
   const buy = useCallback(
-    (kind, id) => {
-      setState((prev) => {
-        const fn = kind === 'tool' ? purchaseTool : kind === 'venue' ? purchaseVenue : purchaseDesk
-        const { state: next, result } = fn(prev, id)
+    async (kind, id) => {
+      const result = await purchasePlayerItem(kind, id)
+      if (result.ok && result.data) {
+        setState((current) => mergeServerState(current, result.data))
+        showNotice('兑换成功，已加入你的工具箱', 'success')
+        return
+      }
 
-        switch (result) {
-          case PURCHASE_RESULT.OK:
-            showNotice('兑换成功，已加入你的工具箱', 'success')
-            return next
-          case PURCHASE_RESULT.ALREADY_OWNED:
-            showNotice('这件道具已经在你的工具箱里了', 'info')
-            return prev
-          case PURCHASE_RESULT.NOT_ENOUGH_POINTS:
-            showNotice(
-              kind === 'tool' ? '铜钱不足，先去「知识挑战」答题赚铜钱吧' : '铜钱不足，可在商店用元宝兑换',
-              'error',
-            )
-            return prev
-          default:
-            showNotice('道具不存在', 'error')
-            return prev
-        }
-      })
+      if (result.code === 'ALREADY_OWNED') {
+        showNotice('这件道具已经在你的工具箱里了', 'info')
+      } else if (result.code === 'INSUFFICIENT_COINS') {
+        showNotice('铜钱不足，可在商店用元宝兑换', 'error')
+      } else if (result.status === 401) {
+        showNotice('登录状态已失效，请重新登录', 'error')
+      } else {
+        showNotice(result.message || '购买失败，请稍后重试', 'error')
+      }
     },
     [showNotice],
   )
@@ -90,34 +121,53 @@ export function PlayerProvider({ children }) {
        * kind='ingot'：花 price 铜钱换 amount 元宝
        * kind='copper'：花 price 元宝换 amount 铜钱
        */
-      exchange: (kind, amount, price) => {
-        setState((prev) => {
-          const fn = kind === 'ingot' ? buyIngotWithCopper : buyCopperWithIngot
-          const { state: next, result } = fn(prev, amount, price)
-          if (result === PURCHASE_RESULT.OK) {
-            showNotice(kind === 'ingot' ? `兑换成功，获得 ${amount} 元宝` : `兑换成功，获得 ${amount} 铜钱`, 'success')
-            return next
-          }
-          showNotice(kind === 'ingot' ? '铜钱不足，无法兑换' : '元宝不足，无法兑换', 'error')
-          return prev
-        })
+      exchange: async (kind, amount) => {
+        const result = await exchangePlayerCurrency(kind, amount)
+        if (result.ok && result.data?.wallet) {
+          setState((current) => ({
+            ...current,
+            copper: result.data.wallet.coins,
+            ingot: result.data.wallet.ingots,
+          }))
+          showNotice(kind === 'ingot' ? `兑换成功，获得 ${amount} 元宝` : `兑换成功，获得 ${amount} 铜钱`, 'success')
+          return
+        }
+        showNotice(
+          result.message || (kind === 'ingot' ? '铜钱不足，无法兑换' : '元宝不足，无法兑换'),
+          'error',
+        )
       },
       saveProfile: (patch) => {
         setState((prev) => updateProfile(prev, patch))
         showNotice('资料已保存', 'success')
       },
       /** 发放货币：答题奖励与演示按钮都走这里 */
-      gainCurrency: (key, amount) => {
-        setState((prev) => addCurrency(prev, key, amount))
-        showNotice(key === 'ingot' ? `获得 ${amount} 元宝` : `获得 ${amount} 铜钱`, 'success')
+      gainCurrency: async (key, amount) => {
+        const result = await grantDevelopmentCurrency(key, amount)
+        if (result.ok && result.data?.wallet) {
+          setState((current) => ({
+            ...current,
+            copper: result.data.wallet.coins,
+            ingot: result.data.wallet.ingots,
+          }))
+          showNotice(key === 'ingot' ? `获得 ${amount} 元宝` : `获得 ${amount} 铜钱`, 'success')
+        } else {
+          showNotice(result.message || '演示货币发放失败', 'error')
+        }
       },
-      resetAll: () => {
-        clearPlayerState()
-        setState(createInitialState())
-        showNotice('已重置为初始状态', 'info')
+      resetAll: async () => {
+        const result = await resetDevelopmentPlayer()
+        if (result.ok && result.data) {
+          clearPlayerState()
+          setState(mergeServerState(createInitialState(), result.data))
+          showNotice('已重置为初始状态', 'info')
+        } else {
+          showNotice(result.message || '重置失败，请稍后重试', 'error')
+        }
       },
+      syncPlayer,
     }),
-    [state, notice, clearNotice, showNotice, buy],
+    [state, notice, clearNotice, showNotice, buy, syncPlayer],
   )
 
   return <PlayerContext.Provider value={value}>{children}</PlayerContext.Provider>
