@@ -2,6 +2,10 @@
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
 
+function notifyAuthChanged() {
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('guji-auth-changed'))
+}
+
 /** 登录成功提示语 */
 export const LOGIN_SUCCESS_TIP = '登录成功，正在进入系统…'
 
@@ -69,6 +73,8 @@ export async function submitLogin(values) {
     }),
   })
 
+  if (result.ok) notifyAuthChanged()
+
   return {
     ...result,
     tip: result.ok ? LOGIN_SUCCESS_TIP : result.message || '登录失败，请稍后重试',
@@ -95,6 +101,8 @@ export async function submitRegister(values) {
     }),
   })
 
+  if (result.ok) notifyAuthChanged()
+
   return {
     ...result,
     tip: result.ok ? REGISTER_SUCCESS_TIP : result.message || '注册失败，请稍后重试',
@@ -106,6 +114,8 @@ export function getCurrentUser() {
   return request('/auth/me')
 }
 
-export function logout() {
-  return request('/auth/logout', { method: 'POST' })
+export async function logout() {
+  const result = await request('/auth/logout', { method: 'POST' })
+  if (result.ok) notifyAuthChanged()
+  return result
 }

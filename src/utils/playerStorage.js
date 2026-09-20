@@ -1,9 +1,8 @@
 /**
- * 玩家状态的本地持久化。
+ * 玩家偏好与界面状态的本地持久化。
  *
- * 说明：当前后端尚未接入，玩家资料、货币、已购道具都保存在浏览器 localStorage 中，
- * 刷新页面不会丢失。接入后端后，把 readPlayerState / writePlayerState 换成接口调用即可，
- * 上层的 usePlayer() 与页面代码无需改动。
+ * 钱包余额和已购道具由后端负责，PlayerContext 会在登录后用服务器数据覆盖这里的缓存；
+ * localStorage 继续保存个人资料、装备选择，并作为页面首次渲染时的临时缓存。
  */
 import {
   DEFAULT_DESK_ID,
@@ -11,14 +10,13 @@ import {
   STARTER_DESK_IDS,
   STARTER_TOOL_IDS,
   STARTER_VENUE_IDS,
-  SHOP_PRICES,
-  VENUE_PRICES,
   getToolById,
   getVenueById,
   getDeskById,
 } from '../data/props.js'
 
-const STORAGE_KEY = 'guji-web:player-state:v1'
+const STORAGE_KEY = 'guji-web:player-preferences:v2'
+const LEGACY_STORAGE_KEY = 'guji-web:player-state:v1'
 
 /** 头像可选方案（水彩风配色，与页面国风色调一致） */
 export const AVATAR_OPTIONS = [
@@ -33,14 +31,13 @@ export const AVATAR_OPTIONS = [
 /** 初始状态：铜钱与元宝从 0 开始，低级工具/场所/工作台默认拥有 */
 export function createInitialState() {
   return {
-    version: 1,
+    version: 2,
     profile: {
       nickname: '修复师',
       title: '见习修复师',
       bio: '',
       avatarId: AVATAR_OPTIONS[0].id,
     },
-    points: 0, // 旧字段：已由铜钱取代，仅保留以兼容旧存档
     copper: 0, // 铜钱：购买道具、场所、工作台
     ingot: 0, // 元宝：购买文物，也可与铜钱互相兑换
     ownedToolIds: [...STARTER_TOOL_IDS],
@@ -53,24 +50,36 @@ export function createInitialState() {
   }
 }
 
-/** 读取玩家状态；数据损坏或缺失时回退到初始状态 */
+/** 只读取本地偏好；旧 v1 数据仅迁移资料与装备字段，不迁移货币或所有权。 */
 export function readPlayerState() {
   if (typeof window === 'undefined' || !window.localStorage) return createInitialState()
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
+    const current = window.localStorage.getItem(STORAGE_KEY)
+    const legacy = current ? null : window.localStorage.getItem(LEGACY_STORAGE_KEY)
+    const raw = current || legacy
     if (!raw) return createInitialState()
     const parsed = JSON.parse(raw)
-    return mergeWithDefaults(parsed)
+    const state = mergeWithDefaults(parsed)
+    if (legacy) window.localStorage.removeItem(LEGACY_STORAGE_KEY)
+    return state
   } catch {
     return createInitialState()
   }
 }
 
-/** 写入玩家状态 */
+/** 钱包与所有权绝不写入 localStorage，只保存设备本地偏好。 */
 export function writePlayerState(state) {
   if (typeof window === 'undefined' || !window.localStorage) return
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      version: 2,
+      profile: state.profile,
+      equippedToolIds: state.equippedToolIds,
+      equippedVenueId: state.equippedVenueId,
+      equippedDeskId: state.equippedDeskId,
+      createdAt: state.createdAt,
+    }))
+    window.localStorage.removeItem(LEGACY_STORAGE_KEY)
   } catch {
     /* 隐私模式下写入失败时静默忽略，功能仍可在内存中工作 */
   }
@@ -81,6 +90,7 @@ export function clearPlayerState() {
   if (typeof window === 'undefined' || !window.localStorage) return
   try {
     window.localStorage.removeItem(STORAGE_KEY)
+    window.localStorage.removeItem(LEGACY_STORAGE_KEY)
   } catch {
     /* ignore */
   }
@@ -91,21 +101,13 @@ function mergeWithDefaults(raw) {
   const base = createInitialState()
   if (!raw || typeof raw !== 'object') return base
 
-  const ownedToolIds = normalizeIds(raw.ownedToolIds, base.ownedToolIds).filter((id) => getToolById(id))
-  // 同类只能保留一件使用中：兼容旧存档里同类多件同时装备的情况
-  const equippedToolIds = keepOnePerGroup(normalizeIds(raw.equippedToolIds, base.equippedToolIds)).filter((id) =>
-    ownedToolIds.includes(id),
-  )
+  const equippedToolIds = keepOnePerGroup(normalizeIds(raw.equippedToolIds, base.equippedToolIds))
+    .filter((id) => getToolById(id))
 
   return {
-    version: 1,
+    ...base,
+    version: 2,
     profile: { ...base.profile, ...(raw.profile || {}) },
-    points: Number.isFinite(raw.points) ? Math.max(0, Math.floor(raw.points)) : 0,
-    copper: Number.isFinite(raw.copper) ? Math.max(0, Math.floor(raw.copper)) : 0,
-    ingot: Number.isFinite(raw.ingot) ? Math.max(0, Math.floor(raw.ingot)) : 0,
-    ownedToolIds,
-    ownedVenueIds: normalizeIds(raw.ownedVenueIds, base.ownedVenueIds).filter((id) => getVenueById(id)),
-    ownedDeskIds: normalizeIds(raw.ownedDeskIds, base.ownedDeskIds).filter((id) => getDeskById(id)),
     equippedToolIds: equippedToolIds.length ? equippedToolIds : [...base.equippedToolIds],
     equippedVenueId: getVenueById(raw.equippedVenueId) ? raw.equippedVenueId : base.equippedVenueId,
     equippedDeskId: getDeskById(raw.equippedDeskId) ? raw.equippedDeskId : base.equippedDeskId,
@@ -126,78 +128,6 @@ function keepOnePerGroup(ids) {
     if (group) byGroup.set(group, id)
   }
   return [...byGroup.values()]
-}
-
-/* ------------------------------ 纯逻辑（可单测） ------------------------------ */
-
-/** 购买结果类型 */
-export const PURCHASE_RESULT = {
-  OK: 'ok',
-  ALREADY_OWNED: 'already-owned',
-  NOT_ENOUGH_POINTS: 'not-enough-points', // 货币不足（铜钱或元宝）
-  NOT_FOUND: 'not-found',
-}
-
-function priceOfTool(tool) {
-  return SHOP_PRICES[tool.tier] ?? 0
-}
-
-function priceOfVenue(venue) {
-  return VENUE_PRICES[venue.tier] ?? 0
-}
-
-/** 购买工具：扣铜钱并登记所有权 */
-export function purchaseTool(state, toolId) {
-  const tool = getToolById(toolId)
-  if (!tool) return { state, result: PURCHASE_RESULT.NOT_FOUND }
-  if (state.ownedToolIds.includes(toolId)) return { state, result: PURCHASE_RESULT.ALREADY_OWNED }
-
-  const price = priceOfTool(tool)
-  if (state.copper < price) return { state, result: PURCHASE_RESULT.NOT_ENOUGH_POINTS }
-
-  /*
-   * 只登记所有权，不自动装备。
-   * 同类工具是升级关系，若买完就自动装备，会和旧的同类工具同时处于「使用中」；
-   * 装备与否交给玩家点「设为使用」决定，届时会顺带换下同类的旧工具。
-   */
-  return {
-    state: {
-      ...state,
-      copper: state.copper - price,
-      ownedToolIds: [...state.ownedToolIds, toolId],
-    },
-    result: PURCHASE_RESULT.OK,
-  }
-}
-
-/** 购买场所：扣铜钱 */
-export function purchaseVenue(state, venueId) {
-  const venue = getVenueById(venueId)
-  if (!venue) return { state, result: PURCHASE_RESULT.NOT_FOUND }
-  if (state.ownedVenueIds.includes(venueId)) return { state, result: PURCHASE_RESULT.ALREADY_OWNED }
-
-  const price = priceOfVenue(venue)
-  if (state.copper < price) return { state, result: PURCHASE_RESULT.NOT_ENOUGH_POINTS }
-
-  return {
-    state: { ...state, copper: state.copper - price, ownedVenueIds: [...state.ownedVenueIds, venueId] },
-    result: PURCHASE_RESULT.OK,
-  }
-}
-
-/** 购买工作台：扣铜钱 */
-export function purchaseDesk(state, deskId) {
-  const desk = getDeskById(deskId)
-  if (!desk) return { state, result: PURCHASE_RESULT.NOT_FOUND }
-  if (state.ownedDeskIds.includes(deskId)) return { state, result: PURCHASE_RESULT.ALREADY_OWNED }
-
-  const price = priceOfVenue(desk)
-  if (state.copper < price) return { state, result: PURCHASE_RESULT.NOT_ENOUGH_POINTS }
-
-  return {
-    state: { ...state, copper: state.copper - price, ownedDeskIds: [...state.ownedDeskIds, deskId] },
-    result: PURCHASE_RESULT.OK,
-  }
 }
 
 /**
@@ -237,69 +167,3 @@ export function equipDesk(state, deskId) {
 export function updateProfile(state, patch) {
   return { ...state, profile: { ...state.profile, ...patch } }
 }
-
-/**
- * 增加积分
- * @deprecated 积分制已下线，改为铜钱与元宝。答题奖励请调用 addCurrency(state, 'copper', n)
- */
-export function addPoints(state, amount) {
-  return addCurrency(state, 'copper', amount)
-}
-
-/** 增加铜钱 / 元宝（答题奖励、演示按钮都走这里） */
-export function addCurrency(state, key, amount) {
-  if (key !== 'copper' && key !== 'ingot') return state
-  const delta = Number.isFinite(amount) ? Math.floor(amount) : 0
-  if (delta <= 0) return state
-  return { ...state, [key]: state[key] + delta }
-}
-
-/**
- * 用铜钱买元宝：花 copperPrice 铜钱，换得 ingotAmount 元宝。
- * 商店「元宝」栏目即这项，展示的是「能得到多少元宝」与「要花多少铜钱」。
- */
-export function buyIngotWithCopper(state, ingotAmount, copperPrice) {
-  const gain = Math.max(0, Math.floor(ingotAmount))
-  const cost = Math.max(0, Math.floor(copperPrice))
-  if (!gain) return { state, result: PURCHASE_RESULT.NOT_FOUND }
-  if (state.copper < cost) return { state, result: PURCHASE_RESULT.NOT_ENOUGH_POINTS }
-  return {
-    state: { ...state, copper: state.copper - cost, ingot: state.ingot + gain },
-    result: PURCHASE_RESULT.OK,
-  }
-}
-
-/** 用元宝买铜钱：花 ingotPrice 元宝，换得 copperAmount 铜钱 */
-export function buyCopperWithIngot(state, copperAmount, ingotPrice) {
-  const gain = Math.max(0, Math.floor(copperAmount))
-  const cost = Math.max(0, Math.floor(ingotPrice))
-  if (!gain) return { state, result: PURCHASE_RESULT.NOT_FOUND }
-  if (state.ingot < cost) return { state, result: PURCHASE_RESULT.NOT_ENOUGH_POINTS }
-  return {
-    state: { ...state, ingot: state.ingot - cost, copper: state.copper + gain },
-    result: PURCHASE_RESULT.OK,
-  }
-}
-
-/*
- * 商店的货币兑换档位（与栏目一一对应）：
- *   元宝栏目：用铜钱换元宝，展示可得元宝数，价格为所需铜钱
- *   铜钱栏目：用元宝换铜钱，展示可得铜钱数，价格为所需元宝
- * 两组价格均为 1000 / 5000 / 10000 / 25000 / 50000。
- */
-export const CURRENCY_TIERS = [
-  { amount: 1, price: 1000 },
-  { amount: 5, price: 5000 },
-  { amount: 10, price: 10000 },
-  { amount: 25, price: 25000 },
-  { amount: 50, price: 50000 },
-]
-
-/** 铜钱栏目：以元宝计价的铜钱档位 */
-export const COPPER_TIERS = [
-  { amount: 1000, price: 1 },
-  { amount: 5000, price: 5 },
-  { amount: 10000, price: 10 },
-  { amount: 25000, price: 25 },
-  { amount: 50000, price: 50 },
-]

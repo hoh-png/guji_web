@@ -64,7 +64,8 @@ async function main() {
   const wallet = await request("/api/wallet")
   assert(wallet.response.status === 200, "wallet read failed")
   assert(wallet.payload.data.ingots === 0 && wallet.payload.data.coins === 0, "wallet defaults are wrong")
-  assert(wallet.payload.data.exchangeRate.ingotToCoin === 10, "exchange rate is wrong")
+  assert(wallet.payload.data.exchangeRate.ingotToCoin === 1000, "exchange rate is wrong")
+  assert(wallet.payload.data.exchangeRate.coinToIngot === 1000, "reverse exchange rate is wrong")
   assert((await prisma.wallet.count({ where: { userId } })) === 1, "legacy wallet was not created")
   results.walletReadAndLegacyBackfill = "passed"
 
@@ -161,33 +162,84 @@ async function main() {
   }
   results.history = "passed"
 
+  const shop = await request("/api/shop")
+  assert(shop.response.status === 200, "shop state read failed")
+  assert(shop.payload.data.ownedToolIds.includes("hammer-1"), "starter tool was not created")
+  assert(shop.payload.data.ownedVenueIds.includes("venue-1"), "starter venue was not created")
+  assert(shop.payload.data.ownedDeskIds.includes("desk-1"), "starter desk was not created")
+
+  const purchased = await request("/api/shop/purchase", {
+    method: "POST",
+    body: { itemType: "tool", itemId: "hammer-2", priceCoins: 999999, userId: -1 },
+  })
+  assert(purchased.response.status === 200, "shop purchase failed")
+  assert(purchased.payload.data.ownedToolIds.includes("hammer-2"), "purchased tool was not persisted")
+  const duplicatePurchase = await request("/api/shop/purchase", {
+    method: "POST",
+    body: { itemType: "tool", itemId: "hammer-2" },
+  })
+  assert(duplicatePurchase.response.status === 409, "duplicate purchase was accepted")
+
+  const concurrentPurchases = await Promise.all(
+    Array.from({ length: 8 }, () => request("/api/shop/purchase", {
+      method: "POST",
+      body: { itemType: "tool", itemId: "hammer-3" },
+    })),
+  )
+  assert(
+    concurrentPurchases.filter(({ response }) => response.status === 200).length === 1,
+    "concurrent purchases did not produce exactly one success",
+  )
+  assert(
+    concurrentPurchases.every(({ response }) => [200, 409].includes(response.status)),
+    "concurrent purchase returned an unexpected server error",
+  )
+  assert(
+    (await prisma.shopOwnership.count({ where: { userId, itemType: "tool", itemId: "hammer-3" } })) === 1,
+    "concurrent purchases created duplicate ownership rows",
+  )
+  results.shopOwnership = "passed"
+
   await prisma.wallet.update({ where: { userId }, data: { ingots: 5, coins: 10 } })
   const exchanged = await request("/api/wallet/exchange", {
     method: "POST",
-    body: { amount: 2, exchangeRate: 999999, receivedCoins: 999999, userId: -1 },
+    body: { kind: "copper", amount: 2000, exchangeRate: 999999, userId: -1 },
   })
   assert(exchanged.response.status === 200, "exchange failed")
-  assert(exchanged.payload.data.wallet.ingots === 3 && exchanged.payload.data.wallet.coins === 30, "exchange balance is wrong")
-  assert(exchanged.payload.data.receivedCoins === 20, "client influenced exchange rate")
-  results.exchange = "passed"
+  assert(exchanged.payload.data.wallet.ingots === 3 && exchanged.payload.data.wallet.coins === 2010, "ingot-to-coin balance is wrong")
+  assert(exchanged.payload.data.receivedCoins === 2000, "client influenced exchange rate")
+
+  const reversed = await request("/api/wallet/exchange", {
+    method: "POST",
+    body: { kind: "ingot", amount: 1 },
+  })
+  assert(reversed.response.status === 200, "reverse exchange failed")
+  assert(reversed.payload.data.wallet.ingots === 4 && reversed.payload.data.wallet.coins === 1010, "coin-to-ingot balance is wrong")
+  assert(reversed.payload.data.spentCoins === 1000, "reverse exchange used the wrong rate")
+  results.bidirectionalExchange = "passed"
 
   const insufficient = await request("/api/wallet/exchange", {
     method: "POST",
-    body: { amount: 100 },
+    body: { kind: "copper", amount: 100000 },
   })
   const afterInsufficient = await prisma.wallet.findUniqueOrThrow({ where: { userId } })
   assert(insufficient.response.status === 400, "insufficient exchange did not return 400")
   assert(insufficient.payload.code === "INSUFFICIENT_INGOTS", "insufficient exchange code is wrong")
-  assert(afterInsufficient.ingots === 3 && afterInsufficient.coins === 30, "insufficient exchange changed wallet")
+  assert(afterInsufficient.ingots === 4 && afterInsufficient.coins === 1010, "insufficient exchange changed wallet")
   results.insufficientIngots = "passed"
 
   for (const amount of [-1, 1.5, "abc"]) {
     const invalid = await request("/api/wallet/exchange", {
       method: "POST",
-      body: { amount },
+      body: { kind: "ingot", amount },
     })
     assert(invalid.response.status === 400 && invalid.payload.code === "INVALID_AMOUNT", `invalid amount accepted: ${amount}`)
   }
+  const invalidMultiple = await request("/api/wallet/exchange", {
+    method: "POST",
+    body: { kind: "copper", amount: 999 },
+  })
+  assert(invalidMultiple.response.status === 400 && invalidMultiple.payload.code === "INVALID_EXCHANGE_AMOUNT", "invalid copper multiple was accepted")
   results.invalidAmounts = "passed"
 
   let nonnegativeConstraintBlocked = false

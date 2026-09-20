@@ -1,1 +1,1 @@
-export const INGOT_TO_COIN_RATE = 10
+export const COINS_PER_INGOT = 1000

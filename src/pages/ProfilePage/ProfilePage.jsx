@@ -15,6 +15,7 @@ const TITLE_OPTIONS = ['见习修复师', '初级修复师', '中级修复师', 
 
 const NICKNAME_MAX = 12
 const BIO_MAX = 60
+const SHOW_DEVELOPMENT_TOOLS = import.meta.env.DEV
 
 /**
  * 个人中心。
@@ -190,25 +191,27 @@ export default function ProfilePage() {
               </div>
             </form>
 
-            {/* 演示辅助：知识问答上线前，铜钱没有来源 */}
-            <div className="card">
-              <h2>演示辅助</h2>
-              <p>
-                铜钱本应由「知识挑战」答题获得，该功能尚未上线。为了能完整走通兑换流程，
-                下面的按钮可直接增加货币，仅用于本地演示，不会上传任何数据。
-              </p>
-              <div className="btn-row" style={{ marginTop: 14 }}>
-                <button type="button" className="btn-ghost" onClick={() => gainCurrency('copper', 1000)}>
-                  +1000 铜钱
-                </button>
-                <button type="button" className="btn-ghost" onClick={() => gainCurrency('copper', 5000)}>
-                  +5000 铜钱
-                </button>
-                <button type="button" className="btn-ghost" onClick={() => gainCurrency('ingot', 10)}>
-                  +10 元宝
-                </button>
+            {/* 仅开发环境展示；操作会写入当前用户的本地测试数据库。 */}
+            {SHOW_DEVELOPMENT_TOOLS ? (
+              <div className="card">
+                <h2>开发测试工具</h2>
+                <p>
+                  知识挑战奖励功能完善前，可使用下面的按钮测试钱包与兑换流程。
+                  每次增加的铜钱或元宝都会写入当前登录用户的测试数据库。
+                </p>
+                <div className="btn-row" style={{ marginTop: 14 }}>
+                  <button type="button" className="btn-ghost" onClick={() => gainCurrency('copper', 1000)}>
+                    +1000 铜钱
+                  </button>
+                  <button type="button" className="btn-ghost" onClick={() => gainCurrency('copper', 5000)}>
+                    +5000 铜钱
+                  </button>
+                  <button type="button" className="btn-ghost" onClick={() => gainCurrency('ingot', 10)}>
+                    +10 元宝
+                  </button>
+                </div>
               </div>
-            </div>
+            ) : null}
           </div>
         </div>
 

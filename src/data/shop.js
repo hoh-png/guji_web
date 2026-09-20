@@ -18,6 +18,23 @@ export const SHOP_CATEGORIES = [
   { id: 'ingot', name: '元宝', currency: 'copper' },
 ]
 
+/** 兑换比例：1 元宝 = 1000 铜钱。档位仅控制页面展示，实际扣款由后端校验。 */
+export const CURRENCY_TIERS = [
+  { amount: 1, price: 1000 },
+  { amount: 5, price: 5000 },
+  { amount: 10, price: 10000 },
+  { amount: 25, price: 25000 },
+  { amount: 50, price: 50000 },
+]
+
+export const COPPER_TIERS = [
+  { amount: 1000, price: 1 },
+  { amount: 5000, price: 5 },
+  { amount: 10000, price: 10 },
+  { amount: 25000, price: 25 },
+  { amount: 50000, price: 50 },
+]
+
 /** 画布尺寸：所有定位以它为基准，再整体缩放到窗口 */
 export const SHOP_CANVAS = { width: 2592, height: 1600 }
 
