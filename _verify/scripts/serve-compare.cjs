@@ -10,7 +10,7 @@ const http = require('http')
 const fs = require('fs')
 const path = require('path')
 
-const ROOT = path.resolve(__dirname)
+const ROOT = path.resolve(__dirname, '..')
 const PORT = Number(process.argv[2] || 4180)
 
 const MIME = {

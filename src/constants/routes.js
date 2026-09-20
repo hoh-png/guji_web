@@ -1,13 +1,16 @@
 /**
  * 全局路由常量。
  *
- * 子页面路径沿用原版静态站点的文件名（pages/xxx.html），
- * 目的是让重构后的跳转地址与原版保持一致。
+ * 路径统一采用「*.html」风格，与站点的静态页面地址习惯保持一致。
+ * 页面之间的跳转一律引用这里的常量，不手写字符串。
  */
 export const ROUTES = {
-  LOGIN: '/',
-  HOME: '/index.html',
-  SCIENCE: '/pages/science.html',
-  GAME: '/pages/game.html',
-  QUIZ: '/pages/quiz.html',
+  LOGIN: '/', // 登录页
+  HOME: '/index.html', // 功能主页
+  SCIENCE: '/pages/science.html', // 智慧科普
+  GAME: '/pages/game.html', // 修复游戏
+  QUIZ: '/pages/quiz.html', // 知识挑战
+  SHOP: '/pages/shop.html', // 道具商店
+  WORKSHOP: '/pages/workshop.html', // 修复文物（工坊）
+  PROFILE: '/pages/profile.html', // 个人中心
 }

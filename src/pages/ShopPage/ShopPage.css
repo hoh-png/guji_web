@@ -1,0 +1,515 @@
+/* ============================================================
+ * 道具商店
+ *
+ * 画面是素材 public/images/shop/reference.jpg（2592×1600）的等比例复刻：
+ * 画布固定 2592×1600（--cw / --ch），用 --s 整体缩放填满窗口，
+ * 因此任意窗口尺寸下各元素比例都与示意图一致。
+ *
+ * 关键写法：商店组件素材都是「整张 2592×1600 画布 + 内容画在某一处」的透明图。
+ * 摆放时必须 1:1 不缩放，所以统一用「窗格裁切」：
+ *   外层 .part 定位到内容在画布上的位置 (x,y,w,h)，
+ *   内层 img 按原始 2592×1600 摆放，再用负 margin 把它偏移到内容处，
+ *   外层 overflow:hidden 只露出那一块。
+ * 这样素材既不会被拉伸变形，也不会因缩放而错位。
+ * ============================================================ */
+
+.shop-scene {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  /* 宽屏时画布两侧的补白：取背景图的暖灰调，做成向中心渐隐，
+     观感上像场景自然延伸，不会出现突兀的深色边 */
+  background:
+    linear-gradient(90deg, #cfc2ab 0%, #ded2bb 12%, #ded2bb 88%, #cfc2ab 100%);
+}
+
+.shop-canvas {
+  /* 场景固定 2592×1600，整体等比缩放 */
+  --cw: 2592;
+  --ch: 1600;
+  /* 由 JS 计算：min(视口宽/2592, 视口高/1600) */
+  --s: 1;
+  /* 顶部元素的贴边内边距 */
+  --edge-pad: 41;
+  position: relative;
+  flex: none;
+  width: calc(var(--cw) * 1px);
+  height: calc(var(--ch) * 1px);
+  transform: scale(var(--s));
+  transform-origin: center center;
+  user-select: none;
+  overflow: hidden;
+}
+
+/* ---------------- 组件通用：窗格裁切 ---------------- */
+.part {
+  position: absolute;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.part > img {
+  position: absolute;
+  width: calc(var(--cw) * 1px);
+  height: calc(var(--ch) * 1px);
+  max-width: none;
+  max-height: none;
+}
+
+/* ---------------- 背景 ---------------- */
+.shop-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+/* ---------------- 左上角：返回 ----------------
+ * 完全用 CSS 绘制：棕色圆角底 + 白色箭头（内联 SVG）+「返回」文字，
+ * 不再引用 back-frame / back-arrow 素材 —— 那两张是整幅画布图，
+ * 内容位置换算容易出偏差，之前几版都对不上。
+ */
+.shop-back {
+  position: absolute;
+  left: calc(var(--edge-pad) * 1px);
+  top: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 64px;
+  padding: 0 26px 0 20px;
+  font-family: inherit;
+  color: #fdf3e0;
+  background: linear-gradient(180deg, #8a5a34 0%, #6f4526 100%);
+  border: 1px solid rgba(58, 34, 18, 0.55);
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(46, 26, 12, 0.35), inset 0 1px 0 rgba(255, 236, 200, 0.25);
+  transition: filter .15s, transform .1s;
+}
+
+.shop-back:hover {
+  filter: brightness(1.08);
+}
+
+.shop-back:active {
+  transform: translateY(1px);
+  filter: brightness(0.96);
+}
+
+.shop-back:focus-visible {
+  outline: 2px solid #fdf3e0;
+  outline-offset: 3px;
+}
+
+/* 箭头：内联 SVG，颜色跟随按钮文字色 */
+.shop-back-icon {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  color: #fdf3e0;
+}
+
+.shop-back-text {
+  font-size: 34px;
+  line-height: 1;
+  letter-spacing: 4px;
+}
+
+/* ---------------- 右上角：资源框 ----------------
+ * 资源框素材 301×76，等宽并排、整体贴画布右边。
+ * 图标与数字放在框内居中位置。
+ */
+.shop-chip {
+  position: absolute;
+  top: 56px;
+  width: 301px;
+  height: 76px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 元宝在左、铜钱在右，与示意图一致 */
+.shop-chip--copper {
+  right: calc(var(--edge-pad) * 1px);
+}
+
+.shop-chip--ingot {
+  right: calc((var(--edge-pad) + 301 + 30) * 1px);
+}
+
+.shop-chip .part {
+  inset: 0;
+}
+
+.shop-chip-icon {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
+  margin-right: 10px;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 3px rgba(40, 24, 12, 0.4));
+}
+
+.shop-chip-value {
+  position: relative;
+  font-size: 30px;
+  line-height: 1;
+  letter-spacing: 1px;
+  color: #fff6e0;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 2px 4px rgba(60, 40, 20, 0.55);
+  white-space: nowrap;
+}
+
+/* ---------------- 左侧挂幡：栏目 ----------------
+ * 位置：按用户要求在原有基础上整体下移 5% 画布高（1600 × 5% = 80px）。
+ */
+.shop-plaque {
+  position: absolute;
+  left: 116px;
+  top: 670px;
+  width: 132px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+/*
+ * 分界线夹在两个栏目之间：栏目内边距 25，加上 gap 6，
+ * 分界线上方与下方各留 31px —— 与上一版「栏目之间 62px」的间距完全一致，
+ * 因此加线不会把整列拉长。
+ */
+.shop-menu-item {
+  width: 100%;
+  padding: 25px 0;
+  font-family: inherit;
+  font-size: 46px;
+  line-height: 1.2;
+  letter-spacing: 2px;
+  color: #4a3527;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: color .15s, transform .15s;
+}
+
+.shop-menu-item:hover {
+  color: #8a2f1c;
+}
+
+.shop-menu-item.on {
+  color: #a8321f;
+  font-weight: 700;
+  transform: scale(1.06);
+}
+
+/* 分界线：素材「直线」整幅是 2592×1600，实际内容只有 x126 y890 处的 124×1，
+ * 因此用窗格裁切取那一行，再横向拉宽到栏目宽度。 */
+.shop-menu-divider {
+  display: block;
+  position: relative;
+  width: 96px;
+  height: 2px;
+  overflow: hidden;
+  opacity: 0.5;
+  flex: none;
+}
+
+.shop-menu-divider > img {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: calc(var(--cw) * 1px);
+  height: calc(var(--ch) * 1px);
+  max-width: none;
+  margin-left: -126px;
+  margin-top: -890px;
+  object-fit: fill;
+}
+
+/* ---------------- 公告板底板 ---------------- */
+.shop-grid-frame {
+  left: 520px;
+  top: 650px;
+  width: 1561px;
+  height: 877px;
+}
+
+.shop-grid-frame > img {
+  margin-left: -520px;
+  margin-top: -650px;
+}
+
+/* ---------------- 工具栏目：整页滚动 ----------------
+ * 所有分类堆在一页里，从上往下翻。
+ * 滚动区域对准公告板那块空白宣纸（画布坐标），
+ * 内部按「标题 + 三张卡」逐组排下去。
+ */
+.shop-scroll {
+  position: absolute;
+  left: 520px;
+  top: 650px;
+  width: 1560px;
+  height: 880px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  z-index: 4;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(150, 110, 62, 0.6) transparent;
+}
+
+.shop-scroll::-webkit-scrollbar {
+  width: 14px;
+}
+
+.shop-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.shop-scroll::-webkit-scrollbar-thumb {
+  background: rgba(150, 110, 62, 0.55);
+  border-radius: 7px;
+}
+
+.shop-scroll-inner {
+  padding: 6px 26px 40px 6px;
+}
+
+/* 一组 = 标题 + 该分类的三张卡 */
+.shop-group {
+  margin-bottom: 46px;
+}
+
+.shop-group-head {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  margin-bottom: 18px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(150, 110, 62, 0.28);
+}
+
+.shop-group-title {
+  flex: none;
+  font-size: 40px;
+  letter-spacing: 6px;
+  color: #4a3527;
+  font-weight: 700;
+}
+
+.shop-group-desc {
+  font-size: 22px;
+  letter-spacing: 1px;
+  color: #7a6549;
+}
+
+/* 三张卡一行，靠左排 */
+.shop-group-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 30px;
+}
+
+/* ---------------- 商品陈列 ----------------
+ * 格子由 ShopCell 用 CSS 直接绘制（米色区 + 底部棕色价签条），
+ * 不再使用 slot-frame 图片素材，因此道具图 / 名称 / 价格
+ * 都能按正常布局摆放，不会因为图片缩放而整体错位。
+ */
+.shop-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.shop-slot {
+  position: absolute;
+  pointer-events: auto;
+}
+
+.shop-cell {
+  position: relative;
+  display: block;
+  /* 操作标签要露在展示框下方，所以不能裁切 */
+  overflow: visible;
+  border-radius: 14px;
+  box-shadow: 0 6px 16px rgba(61, 43, 31, 0.18);
+}
+
+/* 格子本体单独裁圆角：内容不外溢，操作标签仍可挂在外面 */
+.shop-cell .cell-body {
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #f4e3b8 0%, #efdcae 62%, #c9a06a 62%, #b98a55 100%);
+}
+
+/* 道具图 */
+.shop-cell .cell-art {
+  position: absolute;
+  left: 50%;
+  top: 14px;
+  transform: translateX(-50%);
+  width: 172px;
+  height: 96px;
+  object-fit: contain;
+  pointer-events: none;
+  filter: drop-shadow(0 3px 7px rgba(61, 43, 31, 0.22));
+}
+
+/* 名称 */
+.shop-cell .cell-name {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  top: 112px;
+  text-align: center;
+  font-size: 23px;
+  line-height: 1.15;
+  letter-spacing: 1px;
+  color: #4a3527;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+/* 标价：压在底部价签条上 */
+.shop-cell .cell-price {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 158px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  pointer-events: none;
+}
+
+.shop-cell .cell-coin {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.shop-cell .cell-price-value {
+  font-size: 27px;
+  color: #fff6e0;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 3px rgba(60, 40, 20, 0.5);
+}
+
+/* 已藏印章：压在道具图右上 */
+.shop-cell .cell-stamp {
+  position: absolute;
+  right: 52px;
+  top: 18px;
+  width: 74px;
+  height: 112px;
+  object-fit: contain;
+  transform: rotate(-4deg);
+  pointer-events: none;
+}
+
+/* 使用中高亮 */
+.shop-cell.is-active {
+  box-shadow: 0 0 0 4px rgba(168, 50, 31, 0.5), 0 6px 16px rgba(61, 43, 31, 0.18);
+}
+
+/* 操作区：常驻显示在展示框「下方」。
+ * 不能做成 hover 才出现 —— 指针要移到框外才够得着按钮，
+ * 一移出去 hover 就失效、按钮跟着消失，根本点不到。 */
+.shop-cell .cell-actions {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  margin-top: 10px;
+  display: flex;
+  justify-content: center;
+  z-index: 3;
+}
+
+.shop-cell .cell-btn {
+  padding: 6px 20px;
+  font-family: inherit;
+  font-size: 22px;
+  letter-spacing: 1px;
+  color: #fff6e0;
+  background: linear-gradient(135deg, #a8321f, #7e2417);
+  border: 1px solid rgba(246, 236, 210, 0.5);
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(61, 43, 31, 0.35);
+  white-space: nowrap;
+  transition: filter .15s, transform .1s, box-shadow .15s;
+}
+
+/* 悬浮：颜色加深 + 轻微下沉，给出明确的可点反馈 */
+.shop-cell .cell-btn:hover {
+  filter: brightness(0.86);
+  box-shadow: 0 2px 6px rgba(61, 43, 31, 0.45) inset, 0 3px 8px rgba(61, 43, 31, 0.3);
+}
+
+.shop-cell .cell-btn:active {
+  transform: translateY(1px);
+  filter: brightness(0.78);
+}
+
+.shop-cell .cell-btn:focus-visible {
+  outline: 2px solid #fff6e0;
+  outline-offset: 2px;
+}
+
+/* 「兑换」按钮：描金配色 */
+.shop-cell .cell-btn--buy {
+  background: linear-gradient(135deg, #b8924f, #8a6d2f);
+}
+
+/* 「使用中」：状态标签，不可点 */
+.shop-cell .cell-btn--on {
+  background: rgba(91, 106, 79, 0.92);
+  cursor: default;
+}
+
+.shop-cell .cell-btn--on:hover {
+  filter: none;
+  box-shadow: 0 4px 10px rgba(61, 43, 31, 0.35);
+}
+
+/* 「不足」：禁用态，灰下去 */
+.shop-cell .cell-btn:disabled {
+  cursor: not-allowed;
+  color: rgba(255, 246, 224, 0.75);
+  background: rgba(120, 106, 88, 0.85);
+  border-color: rgba(246, 236, 210, 0.3);
+  box-shadow: none;
+}
+
+.shop-cell .cell-btn:disabled:hover {
+  filter: none;
+}
+
+/* ---------------- 栏目空态 ---------------- */
+.shop-empty {
+  position: absolute;
+  left: 520px;
+  top: 1030px;
+  width: 1560px;
+  text-align: center;
+  font-size: 44px;
+  letter-spacing: 6px;
+  color: #7a6549;
+  pointer-events: none;
+}
