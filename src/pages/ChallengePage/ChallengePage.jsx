@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { getQuizProgress, getQuizQuestions, submitQuizAnswer } from '../../api/quizApi.js'
 import StageBoard from '../../components/Challenge/StageBoard.jsx'
 import QuizCard from '../../components/Challenge/QuizCard.jsx'
 import SolutionCard from '../../components/Challenge/SolutionCard.jsx'
 import RelicCard from '../../components/Challenge/RelicCard.jsx'
+import { usePlayer } from '../../context/PlayerContext.jsx'
 import { getStage } from '../../data/stages.js'
-import { QUESTIONS } from '../../data/questions.js'
 import { ROUTES } from '../../constants/routes.js'
 import usePageTitle from '../../hooks/usePageTitle.js'
 import '../../styles/quiz.css'
@@ -20,7 +21,7 @@ import './ChallengePage.css'
  *   3. 文物详情（RelicCard）—— 文物名称与修复进度
  *
  * 关关对应：路线上的每个圆环就是一关，题目与关卡一一对应
- * （题目见 data/questions.js，关卡见 data/stages.js）。
+ * （题目与通关进度来自后端，关卡布局见 data/stages.js）。
  *
  * 版面用「固定场景 + 整体缩放」：场景按 1750×1080 写死坐标，
  * 外层只算一次缩放系数，因此任何窗口尺寸下相对位置都不变。
@@ -47,13 +48,30 @@ const CONGRATS_DURATION = 2000
 /** 答对后解析的停留时长（毫秒），到时自动收起关卡弹窗 */
 const CORRECT_REVIEW_DURATION = 1600
 
+const OPTION_KEYS = ['A', 'B', 'C', 'D']
+
+function toPageQuestion(question, index) {
+  return {
+    id: question.id,
+    stageId: index + 1,
+    q: question.question,
+    opts: OPTION_KEYS.map((key) => question.options?.[key] || ''),
+    reward: question.reward || { coins: 0, ingots: 0 },
+  }
+}
+
 export default function ChallengePage() {
   usePageTitle('知识挑战 · 古迹修复系统')
 
+  const { syncPlayer } = usePlayer()
   const stage = getStage(0)
-  const questions = QUESTIONS
 
   const [scale, setScale] = useState(1)
+  const [questions, setQuestions] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [feedback, setFeedback] = useState('')
   /** 当前打开的关卡号；null 表示没开测验浮层 */
   const [activeId, setActiveId] = useState(null)
   /** 已归位的碎片编号 */
@@ -62,8 +80,68 @@ export default function ChallengePage() {
   const [picked, setPicked] = useState({})
   /** 刚作答、正在显示对错的关卡号 */
   const [reviewingId, setReviewingId] = useState(null)
+  /** 后端返回的判题结果与解析，按关卡号保存 */
+  const [reviews, setReviews] = useState({})
   /** 祝贺弹窗是否已自动消失 */
   const [congratsClosed, setCongratsClosed] = useState(false)
+
+  const loadQuiz = useCallback(async () => {
+    setLoading(true)
+    setLoadError('')
+
+    const [questionsResult, progressResult] = await Promise.all([
+      getQuizQuestions(),
+      getQuizProgress(),
+    ])
+
+    if (!questionsResult.ok) {
+      setLoadError(
+        questionsResult.status === 401
+          ? '请先登录后参与知识挑战'
+          : questionsResult.message || '题目加载失败，请稍后重试',
+      )
+      setLoading(false)
+      return
+    }
+
+    if (!progressResult.ok) {
+      setLoadError(
+        progressResult.status === 401
+          ? '请先登录后参与知识挑战'
+          : progressResult.message || '通关进度加载失败，请稍后重试',
+      )
+      setLoading(false)
+      return
+    }
+
+    const nextQuestions = (questionsResult.data || []).slice(0, stage?.pieces.length || 0).map(toPageQuestion)
+    const progressByQuestion = new Map(
+      (progressResult.data || []).map((item) => [item.questionId, item]),
+    )
+    const nextSolvedIds = []
+    const nextReviews = {}
+
+    for (const question of nextQuestions) {
+      const progress = progressByQuestion.get(question.id)
+      if (!progress) continue
+      const answer = OPTION_KEYS.indexOf(progress.correctAnswer)
+      nextSolvedIds.push(question.stageId)
+      nextReviews[question.stageId] = {
+        correct: true,
+        answer,
+        explanation: progress.explanation || '',
+      }
+    }
+
+    setQuestions(nextQuestions)
+    setSolvedIds(nextSolvedIds)
+    setReviews(nextReviews)
+    setLoading(false)
+  }, [stage])
+
+  useEffect(() => {
+    loadQuiz()
+  }, [loadQuiz])
 
   /* 等比缩放到刚好放下整个场景，不重排内部元素 */
   useEffect(() => {
@@ -81,9 +159,13 @@ export default function ChallengePage() {
   const score = solvedCount * POINT_PER_QUESTION
 
   const activeQuestion = useMemo(
-    () => (activeId ? questions.find((q) => q.id === activeId) || null : null),
+    () => (activeId ? questions.find((q) => q.stageId === activeId) || null : null),
     [activeId, questions],
   )
+  const activeReview = activeId === null ? null : reviews[activeId] || null
+  const displayQuestion = activeQuestion && activeReview
+    ? { ...activeQuestion, answer: activeReview.answer, why: activeReview.explanation }
+    : activeQuestion
   const answered = activeId !== null && reviewingId === activeId
   /*
    * 已答对的关卡，再点开时只看解析，不再出题；
@@ -96,11 +178,13 @@ export default function ChallengePage() {
   const openStage = (id) => {
     setActiveId(id)
     setReviewingId(null)
+    setFeedback('')
   }
 
   const closeStage = () => {
     setActiveId(null)
     setReviewingId(null)
+    setFeedback('')
   }
 
   /*
@@ -110,22 +194,54 @@ export default function ChallengePage() {
    */
   useEffect(() => {
     if (reviewingId === null) return undefined
-    const question = questions.find((q) => q.id === reviewingId)
-    if (!question || picked[reviewingId] !== question.answer) return undefined
+    const review = reviews[reviewingId]
+    if (!review?.correct) return undefined
 
     const timer = setTimeout(closeStage, CORRECT_REVIEW_DURATION)
     return () => clearTimeout(timer)
     // closeStage 只是置空两个状态，无需进依赖
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reviewingId, picked, questions])
+  }, [reviewingId, reviews])
 
-  const pickOption = (index) => {
-    if (!activeQuestion || answered) return
-    setPicked((prev) => ({ ...prev, [activeId]: index }))
-    setReviewingId(activeId)
-    if (index === activeQuestion.answer && !solvedIds.includes(activeId)) {
-      setSolvedIds((prev) => [...prev, activeId])
+  const pickOption = async (index) => {
+    if (!activeQuestion || answered || submitting) return
+
+    setSubmitting(true)
+    setFeedback('')
+    const result = await submitQuizAnswer(activeQuestion.id, OPTION_KEYS[index])
+
+    if (!result.ok || !result.data) {
+      setFeedback(
+        result.status === 401
+          ? '登录状态已失效，请重新登录'
+          : result.message || '答案提交失败，请稍后重试',
+      )
+      setSubmitting(false)
+      return
     }
+
+    const answer = OPTION_KEYS.indexOf(result.data.correctAnswer)
+    setPicked((prev) => ({ ...prev, [activeId]: index }))
+    setReviews((prev) => ({
+      ...prev,
+      [activeId]: {
+        correct: result.data.correct,
+        answer,
+        explanation: result.data.explanation || '',
+      },
+    }))
+    setReviewingId(activeId)
+
+    if (result.data.correct) {
+      setSolvedIds((prev) => (prev.includes(activeId) ? prev : [...prev, activeId]))
+      const coins = result.data.reward?.coins || 0
+      setFeedback(coins > 0 ? `回答正确，获得 ${coins} 铜钱` : '回答正确，本关进度已保存')
+      if (result.data.wallet) await syncPlayer()
+    } else {
+      setFeedback('回答有误，本题不计入通关进度')
+    }
+
+    setSubmitting(false)
   }
 
   /*
@@ -169,6 +285,19 @@ export default function ChallengePage() {
           <span>返回</span>
         </Link>
 
+        {loading || loadError ? (
+          <div className="quiz-overlay" role="status" aria-live="polite">
+            <div className="quiz-panel">
+              <div className="quiz-q">{loading ? '正在加载题目与通关进度…' : loadError}</div>
+              {!loading && loadError ? (
+                <button type="button" className="quiz-next" onClick={loadQuiz}>
+                  重新加载
+                </button>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+
         {/* 1. 修复台 */}
         <StageBoard
           stage={stage}
@@ -185,7 +314,7 @@ export default function ChallengePage() {
         </div>
 
         {/* 2. 测验浮层：一关一题 */}
-        {activeQuestion ? (
+        {displayQuestion && !loading && !loadError ? (
           <div className="quiz-overlay" role="dialog" aria-modal="true">
             <div className="quiz-panel">
               <div className="quiz-panel-head">
@@ -199,16 +328,17 @@ export default function ChallengePage() {
 
               {isSolvedStage ? (
                 /* 已答对：只看解析，不再出题 */
-                <SolutionCard question={activeQuestion} />
+                <SolutionCard question={displayQuestion} />
               ) : (
                 <>
                   <QuizCard
-                    question={activeQuestion}
+                    question={displayQuestion}
                     index={activeId - 1}
                     total={total}
                     score={score}
                     picked={picked[activeId]}
                     answered={answered}
+                    disabled={submitting}
                     onPick={pickOption}
                   />
 
@@ -216,7 +346,7 @@ export default function ChallengePage() {
                   {answered ? (
                     <>
                       <p className="quiz-why">
-                        {picked[activeId] === activeQuestion.answer
+                        {activeReview?.correct
                           ? '回答正确，碎片已归位。'
                           : '回答有误，本题不计入修复——关闭后可重新作答。'}
                       </p>
@@ -227,6 +357,8 @@ export default function ChallengePage() {
                   ) : null}
                 </>
               )}
+
+              {feedback ? <p className="quiz-why">{feedback}</p> : null}
             </div>
           </div>
         ) : null}

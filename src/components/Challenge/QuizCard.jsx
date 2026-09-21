@@ -13,6 +13,7 @@ export default function QuizCard({
   score,
   picked,
   answered,
+  disabled = false,
   onPick,
   result,
   onRetry,
@@ -52,7 +53,7 @@ export default function QuizCard({
               type="button"
               className={cls}
               key={opt}
-              disabled={answered}
+              disabled={answered || disabled}
               onClick={() => onPick(i)}
             >
               {String.fromCharCode(65 + i)}. {opt}
