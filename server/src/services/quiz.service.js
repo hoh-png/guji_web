@@ -50,6 +50,7 @@ function answerResult(question, answer, correct, alreadyRewarded, reward, wallet
     selectedAnswer: answer,
     correct,
     correctAnswer: question.correctAnswer,
+    explanation: question.explanation,
     alreadyRewarded,
     reward,
   }
@@ -62,6 +63,31 @@ function answerResult(question, answer, correct, alreadyRewarded, reward, wallet
   }
 
   return result
+}
+
+export async function getProgress(userId) {
+  const rewards = await prisma.quizReward.findMany({
+    where: { userId },
+    select: {
+      questionId: true,
+      question: {
+        select: {
+          correctAnswer: true,
+          explanation: true,
+          isActive: true,
+        },
+      },
+    },
+    orderBy: { createdAt: "asc" },
+  })
+
+  return rewards
+    .filter(({ question }) => question.isActive)
+    .map(({ questionId, question }) => ({
+      questionId,
+      correctAnswer: question.correctAnswer,
+      explanation: question.explanation,
+    }))
 }
 
 async function recordWithoutReward(tx, userId, question, answer) {

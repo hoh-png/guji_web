@@ -1,0 +1,257 @@
+/* ============================================================
+ * 知识挑战 · 测验卡片与文物详情
+ *
+ * 类名与样式取自挑战页设计（.quiz-q / .quiz-opt / .quiz-meta /
+ * .quiz-result / .relic-meta 等），数值原样保留。
+ * 新增的只有下面「关卡页整合」一节。
+ * ============================================================ */
+
+/* ---------------- 题目 ---------------- */
+.quiz-q {
+  font-size: 19px;
+  color: #5a4632;
+  line-height: 1.8;
+  margin-bottom: 14px;
+  letter-spacing: .04em;
+}
+
+/* ---------------- 选项 ---------------- */
+.quiz-opt {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: #fbf4e2;
+  border: 1px solid #d3c197;
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 10px;
+  font-size: 16px;
+  color: #54442f;
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+  font-family: inherit;
+}
+
+.quiz-opt:hover {
+  background: #f5e9cc;
+  border-color: #b48a4e;
+}
+
+.quiz-opt.correct {
+  background: #e6f0dc;
+  border-color: #6b9a4a;
+  color: #3f6428;
+}
+
+.quiz-opt.wrong {
+  background: #f6ddd8;
+  border-color: #c0574a;
+  color: #96382c;
+}
+
+.quiz-opt:disabled {
+  cursor: default;
+}
+
+/* 解析卡里的正确选项：静态展示，不响应悬停 */
+.quiz-opt--static,
+.quiz-opt--static:hover {
+  cursor: default;
+}
+
+/* ---------------- 题号与得分 ---------------- */
+.quiz-meta {
+  display: flex;
+  justify-content: space-between;
+  color: #9a8562;
+  letter-spacing: .15em;
+  margin-bottom: 12px;
+  font-size: 15px;
+}
+
+/* ---------------- 结算 ---------------- */
+.quiz-result {
+  text-align: center;
+  padding: 30px 10px;
+}
+
+.quiz-result .score {
+  font-size: 46px;
+  color: #8c3a2e;
+  margin: 10px 0;
+  letter-spacing: .05em;
+}
+
+/* ---------------- 文物详情 ---------------- */
+.relic-meta h2 {
+  color: #8c3a2e;
+  font-size: 30px;
+  letter-spacing: .3em;
+  margin-bottom: 10px;
+}
+
+.relic-meta .tags span {
+  display: inline-block;
+  background: #f3e7c9;
+  border: 1px solid #cdb98c;
+  color: #7c6848;
+  border-radius: 999px;
+  font-size: 13.5px;
+  padding: 3px 14px;
+  margin: 0 8px 8px 0;
+  letter-spacing: .12em;
+}
+
+/* ============================================================
+ * 关卡页整合（以下为新增，不属于原设计稿）
+ *
+ * 关卡页用的是 1750×1080 固定画布 + 整体缩放，版式已被修复台占满，
+ * 因此测验卡片以浮层形式出现，尺寸按画布坐标给，随画布一起缩放。
+ * ============================================================ */
+
+/* 测验浮层：盖在版面上，居中 */
+.quiz-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(46, 30, 14, 0.42);
+}
+
+.quiz-panel {
+  width: 720px;
+  max-height: 78%;
+  overflow-y: auto;
+  padding: 30px 34px 26px;
+  background: #fdf8ec;
+  border: 1px solid #cdb98c;
+  border-radius: 16px;
+  box-shadow: 0 18px 48px rgba(46, 26, 12, 0.4);
+}
+
+/* 浮层标题栏 */
+.quiz-panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.quiz-panel-title {
+  font-size: 26px;
+  color: #8c3a2e;
+  letter-spacing: .2em;
+}
+
+.quiz-panel-close {
+  padding: 4px 12px;
+  font-family: inherit;
+  font-size: 20px;
+  color: #7c6848;
+  background: transparent;
+  border: 1px solid #cdb98c;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.quiz-panel-close:hover {
+  background: #f3e7c9;
+}
+
+/* 解析文字 */
+.quiz-why {
+  margin-top: 10px;
+  color: #7c6848;
+  line-height: 1.8;
+  font-size: 15px;
+}
+
+/* 答题后出现的「下一关 / 收下碎片」按钮 */
+.quiz-next {
+  display: block;
+  margin: 16px 0 0 auto;
+  padding: 10px 30px;
+  font-family: inherit;
+  font-size: 17px;
+  letter-spacing: .1em;
+  color: #fdf3e0;
+  background: linear-gradient(135deg, #a8321f, #7e2417);
+  border: 1px solid rgba(246, 236, 210, 0.5);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.quiz-next:hover {
+  filter: brightness(1.08);
+}
+
+/* ---------------- 进度条 ---------------- */
+.relic-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  font-size: 15px;
+  color: #7c6848;
+  letter-spacing: .08em;
+}
+
+.relic-progress-bar {
+  flex: 0 1 260px;
+  height: 10px;
+  background: #e6dcc2;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.relic-progress-fill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #b8924f, #8c3a2e);
+  border-radius: 999px;
+  transition: width .3s;
+}
+
+.relic-progress-value {
+  flex: none;
+  color: #8c3a2e;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------- 通关祝贺弹窗（2 秒自动消失） ---------------- */
+.congrats-panel {
+  width: auto;
+  min-width: 460px;
+  padding: 38px 56px 42px;
+  text-align: center;
+  animation: congrats-in .3s ease-out;
+}
+
+@keyframes congrats-in {
+  from { opacity: 0; transform: scale(0.94); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.congrats-title {
+  font-size: 40px;
+  letter-spacing: .3em;
+  color: #8c3a2e;
+  margin-bottom: 6px;
+}
+
+.congrats-stage {
+  font-size: 26px;
+  letter-spacing: .2em;
+  color: #b8924f;
+  margin-bottom: 16px;
+}
+
+.congrats-text {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.8;
+  color: #7c6848;
+  letter-spacing: .05em;
+}
