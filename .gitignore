@@ -26,7 +26,10 @@ Thumbs.db
 
 # ---------- 验证脚本的运行时产物 ----------
 # 脚本本身（_verify/scripts/）保留在库里，方便日后复查；
-# 下面这些是运行它们时产生的：浏览器临时 profile、截图、量测报告。
+# 下面这些是运行它们时产生的：构建副本、临时 profile、截图、量测报告。
+_verify/assets
+_verify/images
+_verify/index.html
 _verify/ws-*
 _verify/shots
 _verify/*.json
