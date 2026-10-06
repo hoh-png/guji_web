@@ -44,7 +44,7 @@ function useBackTarget() {
 export default function ShopPage() {
   usePageTitle('道具商店 · 古迹修复系统')
 
-  const { state, notice, clearNotice, buyTool, buyVenue, buyDesk, buyRelic, equipTool, selectVenue, selectDesk, exchange } = usePlayer()
+  const { state, notice, clearNotice, buyTool, buyVenue, buyDesk, buyRelic, equipTool, equipRelic, selectVenue, selectDesk, exchange } = usePlayer()
   const goBack = useBackTarget()
 
   const [category, setCategory] = useState('tool')
@@ -181,12 +181,15 @@ export default function ShopPage() {
         name: relic.name,
         image: relic.image,
         owned: ownedRelics.has(relic.id),
+        /* 正在工坊里修复的那件 */
+        active: state.equippedRelicId === relic.id,
         price: INGOT_PRICES[relic.grade] ?? 0,
         currency: 'ingot',
         onBuy: () => buyRelic(relic.id),
+        onEquip: () => equipRelic(relic.id),
       })),
     }))
-  }, [category, state.ownedRelicIds, buyRelic])
+  }, [category, state.ownedRelicIds, state.equippedRelicId, buyRelic, equipRelic])
 
   /** 其余栏目的商品列表 */
   const items = useMemo(() => {

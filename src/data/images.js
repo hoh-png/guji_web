@@ -62,6 +62,12 @@ const challengeImages = [
 /* 智慧科普 · 卷轴纸与返回按钮 */
 const scienceImages = ['/images/science/science-bg.jpg', '/images/science/back.png']
 
+/* 修复工坊 · 14 件文物 × 8 张（出土状态 + 七道工序） */
+const workshopImages = [
+  'hubei-1', 'hubei-2', 'hubei-3', 'hubei-4', 'hubei-5', 'hubei-6', 'hubei-7',
+  'other-1', 'other-2', 'other-3', 'other-4', 'other-5', 'other-6', 'other-7',
+].flatMap((id) => [1, 2, 3, 4, 5, 6, 7, 8].map((n) => `/images/workshop/${id}-${n}.webp`))
+
 /** 全部图片 */
 export const ALL_IMAGES = [
   ...toolImages,
@@ -71,6 +77,7 @@ export const ALL_IMAGES = [
   ...shopImages,
   ...challengeImages,
   ...scienceImages,
+  ...workshopImages,
 ]
 
 /**

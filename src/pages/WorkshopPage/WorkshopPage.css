@@ -71,6 +71,31 @@
 
 /* ---------------- 操作舞台 ---------------- */
 .workshop-stage {
+  /*
+   * 桌面与文物的共同锚点，集中定义在这里，两者引用同一组值因而永远对齐。
+   *   --desk-top  桌子与文物的共同定位点（舞台高度百分比，两者都用它做 top）
+   *   --desk-w    桌子显示宽度
+   *   --desk-rise 从锚点到「台面表面」的纵向距离（像素）
+   *   --art-w     文物显示宽度
+   *
+   * --desk-rise 的来由：锚点落在舞台 77% 处，而桌子宽 600、图比例 1100:825
+   * 使桌高为 450，桌子中心因此比锚点低约 70px；台面表面又在桌子中心下方 119px
+   * （桌图 y=408.5 处），合计约 189px。数值由 measure-workshop.cjs 实测校准。
+   */
+  --desk-top: 77%;
+  --desk-w: min(70vw, 820px);
+  /* 锚点(舞台 77%) → 台面表面的纵向距离，由 measure-workshop.cjs 实测校准 */
+  --desk-rise: -2px;
+  /*
+   * 桌子可见内容的下沿（桌腿落地处），是「桌子下方空地」的上边界。
+   * 桌面图有大量透明留白，不能用图片外框算：
+   *   desk-1.png 内容在 y=316..648，而外框高 825。
+   * 由 measure-desk-onscreen.cjs 换算成页面像素后校准。
+   */
+  --desk-floor: 130px;
+  /* 文物显示宽度：最终渲染尺寸 = 它 × 0.6（见 .artifact-slot 的 scale） */
+  --art-w: min(18vw, 220px);
+
   position: relative;
   flex: 1;
   min-height: 300px; /* 舞台不塌陷：窗口过矮时整页滚动，而不是把操作台压成 0 高 */
@@ -94,48 +119,232 @@
 .stage-desk {
   position: absolute;
   left: 50%;
-  top: 77%;
+  /*
+   * 台面锚点用「舞台高度的百分比」，不要用 vh：
+   * vh 以视口为参照，而绝对定位的 top 百分比以舞台为参照，
+   * 两者不一致会让桌子与文物的相对位置算不准（曾因此偏出 290px）。
+   */
+  top: var(--desk-top);
   transform: translate(-50%, -50%);
-  max-width: min(70vw, 820px);
+  max-width: var(--desk-w);
   height: auto;
   object-fit: contain;
   pointer-events: none;
 }
 
-/* ---------------- 文物占位区 ----------------
- * 舞台右侧：下移到工具排下方，避免与横铺到右端的工具排重叠，
- * 同时仍留在上方干净墙面、不碰下方杂乱的箱子与地面。
- * 素材到位后替换为真实文物与修复交互。
+/* ---------------- 中部桌面上的待修文物 ----------------
+ * 与 .stage-desk 共用同一组变量，因此两者永远对齐：
+ *   --desk-top   桌子中心的纵向位置（舞台高度百分比）
+ *   --desk-w     桌子显示宽度
+ * 文物底边再往下 0.733×桌宽，正好落在台面表面上。
+ *
+ * 台面位置由 _verify/scripts/scan-desk-rows.cjs 量得：
+ *   desk-1.png 里 y=408.5 处跨度最大（865px），即台面表面；
+ *   图高 825、宽 1100，故该行在桌子中心下方 (408.5/825 − 0.5) × 825/1100 = 0.733 个桌宽处。
+ */
+/* ---------------- 中部桌面上的待修文物 ----------------
+ * 与桌子共用同一组变量，但为了避免「同一百分比在两个元素上参照系不同」
+ * （桌子参照舞台、文物参照舞台高度，两者高度并不相等，曾因此偏出 500px），
+ * 这里直接用 --desk-top 定位文物中心，再用 translate 把器物「放到桌面上」：
+ *   translate(-50%, -50%)        先让文物中心落在锚点上
+ *   translateY(0.733 × 桌宽)     再整体下移，使底边贴住台面表面
+ *
+ * 台面位置由 _verify/scripts/scan-desk-rows.cjs 量得：
+ *   desk-1.png 里 y=408.5 处跨度最大（865px），即台面表面；
+ *   该行在桌子中心下方 0.733 个桌宽处（=(408.5/825−0.5)×825/1100）。
  */
 .artifact-slot {
   position: absolute;
-  right: clamp(16px, 3vw, 52px);
-  top: 45%;
-  transform: translateY(-50%);
-  width: clamp(170px, 15vw, 250px);
-  height: clamp(120px, 12vw, 190px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 12;
+  left: 50%;
+  /*
+   * 底边中点不动：定位点仍是台面表面那条线，transform-origin 设为底边中点，
+   * 因此这里做的缩放是「以底部中点为原点缩到 60%」，
+   * 器物底足仍贴在同一条线上，水平也仍居中。
+   */
+  top: calc(var(--desk-top) + var(--desk-rise));
+  transform: translate(-50%, -100%) scale(0.6);
+  transform-origin: bottom center;
+  width: var(--art-w);
+  z-index: 14;
   pointer-events: none;
 }
 
-.artifact-inner {
+/* 器物图：撑起整个槽的高度，底边即台面接触线 */
+.artifact-image {
+  display: block;
   width: 100%;
-  height: 100%;
+  height: auto;
+  filter: drop-shadow(0 10px 18px rgba(61, 43, 31, 0.32));
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* 名称牌与进度点：与提示条一起排在桌子下方的空地上 */
+.artifact-meta {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--desk-top) + var(--desk-floor) + 42px);
+  transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border: 2px dashed rgba(168, 50, 31, 0.42);
-  border-radius: 10px;
-  background: rgba(255, 252, 244, 0.42);
-  box-shadow: 0 8px 20px rgba(61, 43, 31, 0.12);
-  backdrop-filter: blur(1px);
+  gap: 6px;
+  white-space: nowrap;
+  z-index: 16;
 }
 
+/* ---------------- 桌下信息带 ----------------
+ * 桌子下方的空地只有约 40px 高，三块内容竖着排会溢出视口，
+ * 因此并成一条横排：名称 · 进度点 · 下一步提示。
+ */
+.step-hint {
+  position: absolute;
+  left: 50%;
+  /* 信息带高约 32px，上移半个高度，让它整个落在桌腿落地线之下 */
+  top: calc(var(--desk-top) + var(--desk-floor) + 16px);
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0;
+  padding: 6px 20px;
+  white-space: nowrap;
+  z-index: 16;
+  pointer-events: none;
+}
+
+/* 名称与状态 */
+.artifact-caption {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+}
+
+.artifact-name {
+  font-size: clamp(12px, 1vw, 16px);
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--brick);
+}
+
+.artifact-state {
+  font-size: clamp(10px, .82vw, 13px);
+  letter-spacing: 1px;
+  color: var(--ink-2);
+}
+
+/* 工序进度：七个小圆点 */
+.step-bar {
+  display: flex;
+  gap: 5px;
+}
+
+.step-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgba(255, 252, 244, 0.72);
+  border: 1px solid rgba(184, 146, 79, 0.8);
+  transition: background .2s, transform .2s;
+}
+
+.step-dot.is-done {
+  background: #6b9a4a;
+  border-color: #4f7a33;
+}
+
+/* 下一步：放大并染色，指明该做哪一步 */
+.step-dot.is-next {
+  background: var(--brick);
+  border-color: var(--brick);
+  transform: scale(1.35);
+}
+
+/* 下一步文字 */
+.step-next {
+  font-size: clamp(11px, .95vw, 15px);
+  letter-spacing: 1.2px;
+  color: var(--ink);
+}
+
+.step-next.is-done {
+  color: #3f6428;
+}
+
+/* 整条信息带的底色：极淡，只用来保证文字在背景上可读 */
+.step-hint::before {
+  content: '';
+  position: absolute;
+  inset: -2px -6px;
+  background: rgba(255, 252, 244, 0.82);
+  border: 1px solid rgba(184, 146, 79, 0.5);
+  border-radius: 999px;
+  box-shadow: 0 4px 14px rgba(61, 43, 31, 0.12);
+  z-index: -1;
+}
+
+/* 工序进度：七个小圆点，做完的填实 */
+.step-bar {
+  display: flex;
+  gap: 5px;
+}
+
+.step-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgba(255, 252, 244, 0.72);
+  border: 1px solid rgba(184, 146, 79, 0.8);
+  transition: background .2s, transform .2s;
+}
+
+.step-dot.is-done {
+  background: #6b9a4a;
+  border-color: #4f7a33;
+}
+
+/* 下一步：轻微放大 + 呼吸感，指明该做哪一步 */
+.step-dot.is-next {
+  background: var(--brick);
+  border-color: var(--brick);
+  transform: scale(1.35);
+}
+
+.artifact-caption {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  padding: 2px 10px;
+  background: rgba(255, 252, 244, 0.86);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.artifact-name {
+  font-size: clamp(12px, 1vw, 15px);
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--brick);
+}
+
+.artifact-state {
+  font-size: clamp(10px, .8vw, 12px);
+  letter-spacing: 1px;
+  color: var(--ink-2);
+}
+
+.artifact-hint {
+  margin: 0;
+  font-size: clamp(10px, .8vw, 12px);
+  letter-spacing: 1px;
+  color: var(--ink-2);
+  text-align: center;
+  text-shadow: 0 1px 2px rgba(255, 252, 244, 0.9);
+}
+
+/* 素材缺失时的占位（当前不会出现，保留以防数据为空） */
 .artifact-label {
   font-size: clamp(14px, 1.2vw, 17px);
   letter-spacing: 3px;
