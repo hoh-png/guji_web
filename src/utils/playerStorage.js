@@ -15,6 +15,7 @@ import {
   getDeskById,
 } from '../data/props.js'
 import { INGOT_PRICES, STARTER_RELIC_IDS, getRelicById } from '../data/relics.js'
+import { TOTAL_STEPS } from '../data/restoration.js'
 
 const STORAGE_KEY = 'guji-web:player-preferences:v2'
 const LEGACY_STORAGE_KEY = 'guji-web:player-state:v1'
@@ -48,6 +49,12 @@ export function createInitialState() {
     equippedVenueId: DEFAULT_VENUE_ID,
     equippedDeskId: DEFAULT_DESK_ID,
     ownedRelicIds: [...STARTER_RELIC_IDS], // 文物：用元宝购买，初始为空
+    equippedRelicId: null, // 工坊里正在修复的那件文物
+    /**
+     * 各文物的修复进度：{ [relicId]: 已完成工序数 }（0 = 出土状态）。
+     * 进度跟着文物走，所以换走再换回来仍停在原处。
+     */
+    relicProgress: {},
     createdAt: new Date().toISOString(),
   }
 }
@@ -69,7 +76,7 @@ export function readPlayerState() {
   }
 }
 
-/** 钱包与所有权绝不写入 localStorage，只保存设备本地偏好。 */
+/** 后端管理的钱包与商品所有权不写入 localStorage；这里只保存设备本地偏好和文物修复进度。 */
 export function writePlayerState(state) {
   if (typeof window === 'undefined' || !window.localStorage) return
   try {
@@ -80,6 +87,8 @@ export function writePlayerState(state) {
       equippedVenueId: state.equippedVenueId,
       equippedDeskId: state.equippedDeskId,
       ownedRelicIds: state.ownedRelicIds,
+      equippedRelicId: state.equippedRelicId,
+      relicProgress: state.relicProgress,
       createdAt: state.createdAt,
     }))
     window.localStorage.removeItem(LEGACY_STORAGE_KEY)
@@ -106,6 +115,7 @@ function mergeWithDefaults(raw) {
 
   const equippedToolIds = keepOnePerGroup(normalizeIds(raw.equippedToolIds, base.equippedToolIds))
     .filter((id) => getToolById(id))
+  const ownedRelicIds = normalizeIds(raw.ownedRelicIds, base.ownedRelicIds).filter((id) => getRelicById(id))
 
   return {
     ...base,
@@ -114,9 +124,25 @@ function mergeWithDefaults(raw) {
     equippedToolIds: equippedToolIds.length ? equippedToolIds : [...base.equippedToolIds],
     equippedVenueId: getVenueById(raw.equippedVenueId) ? raw.equippedVenueId : base.equippedVenueId,
     equippedDeskId: getDeskById(raw.equippedDeskId) ? raw.equippedDeskId : base.equippedDeskId,
-    ownedRelicIds: normalizeIds(raw.ownedRelicIds, base.ownedRelicIds).filter((id) => getRelicById(id)),
+    ownedRelicIds,
+    /* 正在修复的文物必须是自己拥有的，否则清空 */
+    equippedRelicId: ownedRelicIds.includes(raw.equippedRelicId) ? raw.equippedRelicId : null,
+    /* 进度：只保留仍然拥有的文物，数值夹在 0..总工序数之间 */
+    relicProgress: normalizeProgress(raw.relicProgress, ownedRelicIds),
     createdAt: raw.createdAt || base.createdAt,
   }
+}
+
+/** 修复进度表的清洗：只留已拥有的文物，数值取 0..TOTAL_STEPS 的整数 */
+function normalizeProgress(value, ownedIds) {
+  const out = {}
+  if (!value || typeof value !== 'object') return out
+  for (const id of ownedIds) {
+    const n = value[id]
+    if (!Number.isFinite(n)) continue
+    out[id] = Math.min(TOTAL_STEPS, Math.max(0, Math.floor(n)))
+  }
+  return out
 }
 
 function normalizeIds(value, fallback) {
@@ -165,7 +191,7 @@ export function getEquippedToolInGroup(state, groupId) {
 
 /**
  * 购买文物：扣元宝并登记所有权。
- * 文物是收藏品，没有「装备」概念，买下即入库。
+ * 文物是收藏品，买下即入库，可「设为使用」拿到工坊修复。
  */
 export function purchaseRelic(state, relicId) {
   const relic = getRelicById(relicId)
@@ -178,9 +204,52 @@ export function purchaseRelic(state, relicId) {
   if (state.ingot < price) return { state, result: PURCHASE_RESULT.NOT_ENOUGH_POINTS }
 
   return {
-    state: { ...state, ingot: state.ingot - price, ownedRelicIds: [...owned, relicId] },
+    state: {
+      ...state,
+      ingot: state.ingot - price,
+      ownedRelicIds: [...owned, relicId],
+      relicProgress: { ...(state.relicProgress || {}), [relicId]: 0 },
+      // 买下后若还没选文物，直接用它，省一步操作
+      equippedRelicId: state.equippedRelicId || relicId,
+    },
     result: PURCHASE_RESULT.OK,
   }
+}
+
+/** 把某件已拥有的文物设为「工坊里正在修复的」 */
+export function equipRelic(state, relicId) {
+  if (!state.ownedRelicIds?.includes(relicId)) return state
+  if (state.equippedRelicId === relicId) return state
+  return { ...state, equippedRelicId: relicId }
+}
+
+/**
+ * 记录一次成功的修复工序。
+ *
+ * 进度按文物分别保存：只把当前这件文物的计数 +1，
+ * 且不超过总工序数。因此换走再换回来仍停在原处。
+ */
+export function advanceRelicProgress(state, relicId) {
+  const owned = state.ownedRelicIds || []
+  if (!owned.includes(relicId)) return state
+
+  const progress = state.relicProgress || {}
+  const current = Math.min(TOTAL_STEPS, Math.max(0, Math.floor(progress[relicId] || 0)))
+  if (current >= TOTAL_STEPS) return state
+
+  return { ...state, relicProgress: { ...progress, [relicId]: current + 1 } }
+}
+
+/** 取某件文物的修复进度（0 = 出土状态） */
+export function getRelicProgress(state, relicId) {
+  const n = (state.relicProgress || {})[relicId]
+  return Number.isFinite(n) ? Math.min(TOTAL_STEPS, Math.max(0, Math.floor(n))) : 0
+}
+
+/** 重置某件文物的修复进度，重新从出土状态开始 */
+export function resetRelicProgress(state, relicId) {
+  if (!state.ownedRelicIds?.includes(relicId)) return state
+  return { ...state, relicProgress: { ...(state.relicProgress || {}), [relicId]: 0 } }
 }
 
 /** 切换当前场所（仅限已拥有） */

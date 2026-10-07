@@ -50,7 +50,7 @@ function useBackTarget() {
 export default function ShopPage() {
   usePageTitle('道具商店 · 古迹修复系统')
 
-  const { state, notice, clearNotice, buyTool, buyVenue, buyDesk, buyRelic, equipTool, selectVenue, selectDesk, exchange } = usePlayer()
+  const { state, notice, clearNotice, buyTool, buyVenue, buyDesk, buyRelic, equipTool, equipRelic, selectVenue, selectDesk, exchange } = usePlayer()
   const goBack = useBackTarget()
 
   const [category, setCategory] = useState('tool')
@@ -166,7 +166,7 @@ export default function ShopPage() {
 
   /**
    * 文物栏目：按地区分批，每批一行标题 + 若干卡片，整页滚动。
-   * 价格用元宝，买下即入馆藏（无「装备」概念）。
+   * 价格用元宝，买下即入馆藏，并可设为工坊当前修复对象。
    */
   const relicSections = useMemo(() => {
     if (category !== 'relic') return []
@@ -187,12 +187,15 @@ export default function ShopPage() {
         name: relic.name,
         image: relic.image,
         owned: ownedRelics.has(relic.id),
+        /* 正在工坊里修复的那件 */
+        active: state.equippedRelicId === relic.id,
         price: INGOT_PRICES[relic.grade] ?? 0,
         currency: 'ingot',
         onBuy: () => buyRelic(relic.id),
+        onEquip: () => equipRelic(relic.id),
       })),
     }))
-  }, [category, state.ownedRelicIds, buyRelic])
+  }, [category, state.ownedRelicIds, state.equippedRelicId, buyRelic, equipRelic])
 
   /** 其余栏目的商品列表 */
   const items = useMemo(() => {

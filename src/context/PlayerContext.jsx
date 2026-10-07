@@ -1,12 +1,15 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import {
   PURCHASE_RESULT,
+  advanceRelicProgress,
   clearPlayerState,
   createInitialState,
   equipDesk,
+  equipRelic,
   equipVenue,
   purchaseRelic,
   readPlayerState,
+  resetRelicProgress,
   toggleEquipTool,
   updateProfile,
   writePlayerState,
@@ -18,6 +21,7 @@ import {
   purchasePlayerItem,
   resetDevelopmentPlayer,
 } from '../api/playerApi.js'
+import { getRelicById } from '../data/relics.js'
 
 const PlayerContext = createContext(null)
 
@@ -138,6 +142,20 @@ export function PlayerProvider({ children }) {
       equipTool: (id) => setState((prev) => toggleEquipTool(prev, id)),
       selectVenue: (id) => setState((prev) => equipVenue(prev, id)),
       selectDesk: (id) => setState((prev) => equipDesk(prev, id)),
+
+      /** 把某件已拥有的文物设为「工坊里正在修复的」 */
+      equipRelic: (id) => {
+        setState((prev) => equipRelic(prev, id))
+        const relic = getRelicById(id)
+        if (relic) showNotice(`已切换到「${relic.name}」，继续上次的进度`, 'info')
+      },
+      /** 记录一次成功的修复工序（进度按文物分别保存） */
+      advanceStep: (id) => setState((prev) => advanceRelicProgress(prev, id)),
+      /** 重置某件文物的修复进度 */
+      resetRelic: (id) => {
+        setState((prev) => resetRelicProgress(prev, id))
+        showNotice('已回到出土状态，可重新修复', 'info')
+      },
       /**
        * 货币兑换。
        * kind='ingot'：花 price 铜钱换 amount 元宝
