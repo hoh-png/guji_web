@@ -207,7 +207,7 @@ export default function WorkshopPage() {
    * @param {string} toolId   松手的工具 id
    * @param {number} x,y      屏幕坐标
    */
-  const handleToolDrop = (toolId, x, y) => {
+  const handleToolDrop = async (toolId, x, y) => {
     if (!playable || finished) return
 
     const box = artifactRef.current?.getBoundingClientRect()
@@ -224,9 +224,10 @@ export default function WorkshopPage() {
     }
 
     /* 进度按文物分别记录，写进玩家存档 */
-    advanceStep(relic.id)
+    const progress = await advanceStep(relic.id, toolId)
+    if (!progress) return
     showNotice(
-      doneSteps + 1 >= totalSteps
+      progress.completed
         ? `${relic.name}修复完成`
         : `第 ${nextStep.id} 步完成：${nextStep.title}`,
       'success',

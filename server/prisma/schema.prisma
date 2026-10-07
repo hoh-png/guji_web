@@ -2,6 +2,22 @@ generator client {
   provider = "prisma-client-js"
 }
 
+model RelicRestoration {
+  id             Int       @id @default(autoincrement())
+  userId         Int
+  relicId        String
+  completedSteps Int       @default(0)
+  completedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, relicId])
+  @@index([userId])
+  @@index([relicId])
+}
+
 datasource db {
   provider = "mysql"
 }
@@ -14,9 +30,37 @@ model User {
   updatedAt    DateTime @updatedAt
 
   wallet       Wallet?
+  profile      PlayerProfile?
+  preference   PlayerPreference?
   shopItems    ShopOwnership[]
+  restorations RelicRestoration[]
   quizAttempts QuizAttempt[]
   quizRewards  QuizReward[]
+}
+
+model PlayerProfile {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  nickname  String   @default("修复师")
+  bio       String   @default("")
+  avatarId  String   @default("avatar-ink")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PlayerPreference {
+  id              Int      @id @default(autoincrement())
+  userId          Int      @unique
+  equippedToolIds Json
+  equippedVenueId String   @default("venue-1")
+  equippedDeskId  String   @default("desk-1")
+  equippedRelicId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 enum AnswerOption {

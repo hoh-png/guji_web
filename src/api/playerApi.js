@@ -18,13 +18,40 @@ async function request(path, options = {}) {
 }
 
 export function getPlayerState() {
-  return request('/shop')
+  return request('/player')
 }
 
 export function purchasePlayerItem(itemType, itemId) {
   return request('/shop/purchase', {
     method: 'POST',
     body: JSON.stringify({ itemType, itemId }),
+  })
+}
+
+export function updatePlayerProfile(profile) {
+  return request('/player/profile', {
+    method: 'PATCH',
+    body: JSON.stringify(profile),
+  })
+}
+
+export function updatePlayerLoadout(kind, itemId) {
+  return request('/player/loadout', {
+    method: 'PATCH',
+    body: JSON.stringify({ kind, itemId }),
+  })
+}
+
+export function advancePlayerRestoration(relicId, toolId) {
+  return request(`/player/relics/${encodeURIComponent(relicId)}/advance`, {
+    method: 'POST',
+    body: JSON.stringify({ toolId }),
+  })
+}
+
+export function resetPlayerRestoration(relicId) {
+  return request(`/player/relics/${encodeURIComponent(relicId)}/reset`, {
+    method: 'POST',
   })
 }
 
@@ -43,5 +70,5 @@ export function grantDevelopmentCurrency(kind, amount) {
 }
 
 export function resetDevelopmentPlayer() {
-  return request('/shop/dev/reset', { method: 'POST' })
+  return request('/player/dev/reset', { method: 'POST' })
 }

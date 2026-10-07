@@ -1,57 +1,50 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import {
-  PURCHASE_RESULT,
-  advanceRelicProgress,
   clearPlayerState,
   createInitialState,
-  equipDesk,
-  equipRelic,
-  equipVenue,
-  purchaseRelic,
   readPlayerState,
-  resetRelicProgress,
-  toggleEquipTool,
-  updateProfile,
   writePlayerState,
 } from '../utils/playerStorage.js'
 import {
+  advancePlayerRestoration,
   exchangePlayerCurrency,
   getPlayerState,
   grantDevelopmentCurrency,
   purchasePlayerItem,
+  resetPlayerRestoration,
   resetDevelopmentPlayer,
+  updatePlayerLoadout,
+  updatePlayerProfile,
 } from '../api/playerApi.js'
 import { getRelicById } from '../data/relics.js'
 
 const PlayerContext = createContext(null)
 
 function mergeServerState(current, data) {
-  const ownedToolIds = data.ownedToolIds || []
-  const ownedVenueIds = data.ownedVenueIds || []
-  const ownedDeskIds = data.ownedDeskIds || []
-
   return {
     ...current,
+    ...(data.profile ? { profile: { ...current.profile, ...data.profile } } : {}),
     copper: data.wallet?.coins ?? current.copper,
     ingot: data.wallet?.ingots ?? current.ingot,
-    ownedToolIds,
-    ownedVenueIds,
-    ownedDeskIds,
-    equippedToolIds: current.equippedToolIds.filter((id) => ownedToolIds.includes(id)),
-    equippedVenueId: ownedVenueIds.includes(current.equippedVenueId)
-      ? current.equippedVenueId
-      : ownedVenueIds[0],
-    equippedDeskId: ownedDeskIds.includes(current.equippedDeskId)
-      ? current.equippedDeskId
-      : ownedDeskIds[0],
+    ownedToolIds: data.ownedToolIds ?? current.ownedToolIds,
+    ownedVenueIds: data.ownedVenueIds ?? current.ownedVenueIds,
+    ownedDeskIds: data.ownedDeskIds ?? current.ownedDeskIds,
+    ownedRelicIds: data.ownedRelicIds ?? current.ownedRelicIds,
+    equippedToolIds: data.equippedToolIds ?? current.equippedToolIds,
+    equippedVenueId: data.equippedVenueId ?? current.equippedVenueId,
+    equippedDeskId: data.equippedDeskId ?? current.equippedDeskId,
+    equippedRelicId: data.equippedRelicId === undefined
+      ? current.equippedRelicId
+      : data.equippedRelicId,
+    relicProgress: data.relicProgress ?? current.relicProgress,
   }
 }
 
 /**
  * 玩家状态容器。
  *
- * 钱包与商店所有权由后端保存；个人资料和装备选择仍保存在浏览器，
- * 因此现有页面组件不需要感知数据来源差异。
+ * 钱包、商店所有权、个人资料、装备选择与修复进度均由后端保存；
+ * localStorage 只作为首次渲染时的临时缓存。
  */
 export function PlayerProvider({ children }) {
   const [state, setState] = useState(() => readPlayerState())
@@ -89,19 +82,36 @@ export function PlayerProvider({ children }) {
       const result = await purchasePlayerItem(kind, id)
       if (result.ok && result.data) {
         setState((current) => mergeServerState(current, result.data))
-        showNotice('兑换成功，已加入你的工具箱', 'success')
-        return
+        await syncPlayer()
+        showNotice(kind === 'relic' ? '珍藏成功，已收入馆藏' : '兑换成功，已加入你的工具箱', 'success')
+        return true
       }
 
       if (result.code === 'ALREADY_OWNED') {
-        showNotice('这件道具已经在你的工具箱里了', 'info')
+        showNotice(kind === 'relic' ? '这件文物已在你的馆藏中' : '这件道具已经在你的工具箱里了', 'info')
       } else if (result.code === 'INSUFFICIENT_COINS') {
         showNotice('铜钱不足，可在商店用元宝兑换', 'error')
+      } else if (result.code === 'INSUFFICIENT_INGOTS') {
+        showNotice('元宝不足，可在商店用铜钱兑换元宝', 'error')
       } else if (result.status === 401) {
         showNotice('登录状态已失效，请重新登录', 'error')
       } else {
         showNotice(result.message || '购买失败，请稍后重试', 'error')
       }
+      return false
+    },
+    [showNotice, syncPlayer],
+  )
+
+  const saveLoadout = useCallback(
+    async (kind, itemId) => {
+      const result = await updatePlayerLoadout(kind, itemId)
+      if (result.ok && result.data) {
+        setState((current) => mergeServerState(current, result.data))
+        return true
+      }
+      showNotice(result.message || '装备状态保存失败，请稍后重试', 'error')
+      return false
     },
     [showNotice],
   )
@@ -115,45 +125,48 @@ export function PlayerProvider({ children }) {
       buyTool: (id) => buy('tool', id),
       buyVenue: (id) => buy('venue', id),
       buyDesk: (id) => buy('desk', id),
-      /** 购买文物：扣元宝，买下即入馆藏 */
-      buyRelic: (id) => {
-        setState((prev) => {
-          const { state: next, result } = purchaseRelic(prev, id)
-          switch (result) {
-            case PURCHASE_RESULT.OK:
-              showNotice('珍藏成功，已收入馆藏', 'success')
-              return next
-            case PURCHASE_RESULT.ALREADY_OWNED:
-              showNotice('这件文物已在你的馆藏中', 'info')
-              return prev
-            case PURCHASE_RESULT.NOT_ENOUGH_POINTS:
-              showNotice('元宝不足，可在商店用铜钱兑换元宝', 'error')
-              return prev
-            default:
-              showNotice('文物不存在', 'error')
-              return prev
-          }
-        })
-      },
+      buyRelic: (id) => buy('relic', id),
       /**
        * 把工具设为使用中。
        * 同类工具是升级关系，装备新的一件会自动换下同类的旧的一件。
        */
-      equipTool: (id) => setState((prev) => toggleEquipTool(prev, id)),
-      selectVenue: (id) => setState((prev) => equipVenue(prev, id)),
-      selectDesk: (id) => setState((prev) => equipDesk(prev, id)),
+      equipTool: (id) => saveLoadout('tool', id),
+      selectVenue: (id) => saveLoadout('venue', id),
+      selectDesk: (id) => saveLoadout('desk', id),
 
       /** 把某件已拥有的文物设为「工坊里正在修复的」 */
-      equipRelic: (id) => {
-        setState((prev) => equipRelic(prev, id))
+      equipRelic: async (id) => {
+        const saved = await saveLoadout('relic', id)
         const relic = getRelicById(id)
-        if (relic) showNotice(`已切换到「${relic.name}」，继续上次的进度`, 'info')
+        if (saved && relic) showNotice(`已切换到「${relic.name}」，继续上次的进度`, 'info')
       },
       /** 记录一次成功的修复工序（进度按文物分别保存） */
-      advanceStep: (id) => setState((prev) => advanceRelicProgress(prev, id)),
+      advanceStep: async (id, toolId) => {
+        const result = await advancePlayerRestoration(id, toolId)
+        if (!result.ok || !result.data) {
+          showNotice(result.message || '修复进度保存失败，请稍后重试', 'error')
+          return null
+        }
+        setState((current) => ({
+          ...current,
+          relicProgress: {
+            ...(current.relicProgress || {}),
+            [id]: result.data.completedSteps,
+          },
+        }))
+        return result.data
+      },
       /** 重置某件文物的修复进度 */
-      resetRelic: (id) => {
-        setState((prev) => resetRelicProgress(prev, id))
+      resetRelic: async (id) => {
+        const result = await resetPlayerRestoration(id)
+        if (!result.ok || !result.data) {
+          showNotice(result.message || '重置修复进度失败', 'error')
+          return
+        }
+        setState((current) => ({
+          ...current,
+          relicProgress: { ...(current.relicProgress || {}), [id]: 0 },
+        }))
         showNotice('已回到出土状态，可重新修复', 'info')
       },
       /**
@@ -177,9 +190,14 @@ export function PlayerProvider({ children }) {
           'error',
         )
       },
-      saveProfile: (patch) => {
-        setState((prev) => updateProfile(prev, patch))
-        showNotice('资料已保存', 'success')
+      saveProfile: async (patch) => {
+        const result = await updatePlayerProfile(patch)
+        if (result.ok && result.data) {
+          setState((current) => mergeServerState(current, result.data))
+          showNotice('资料已保存', 'success')
+        } else {
+          showNotice(result.message || '资料保存失败，请稍后重试', 'error')
+        }
       },
       /** 发放货币：答题奖励与演示按钮都走这里 */
       gainCurrency: async (key, amount) => {
@@ -207,7 +225,7 @@ export function PlayerProvider({ children }) {
       },
       syncPlayer,
     }),
-    [state, notice, clearNotice, showNotice, buy, syncPlayer],
+    [state, notice, clearNotice, showNotice, buy, saveLoadout, syncPlayer],
   )
 
   return <PlayerContext.Provider value={value}>{children}</PlayerContext.Provider>

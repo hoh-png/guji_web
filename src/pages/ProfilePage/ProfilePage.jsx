@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Avatar from '../../components/museum/Avatar.jsx'
 import MuseumHead from '../../components/museum/MuseumHead.jsx'
@@ -10,7 +10,7 @@ import useAutoNotice from '../../hooks/useAutoNotice.js'
 import { AVATAR_OPTIONS } from '../../utils/playerStorage.js'
 import { ROUTES } from '../../constants/routes.js'
 
-/** 修复师等级：与知识挑战的「修复师等级」对应，暂由玩家自行选择 */
+/** 修复师等级：由后端根据知识挑战首次通关题数自动评定 */
 const TITLE_OPTIONS = ['见习修复师', '初级修复师', '中级修复师', '高级修复师', '首席修复师']
 
 const NICKNAME_MAX = 12
@@ -29,19 +29,23 @@ export default function ProfilePage() {
   const { state, notice, clearNotice, saveProfile, gainCurrency, showNotice } = usePlayer()
 
   const [nickname, setNickname] = useState(state.profile.nickname)
-  const [title, setTitle] = useState(state.profile.title)
   const [bio, setBio] = useState(state.profile.bio)
   const [avatarId, setAvatarId] = useState(state.profile.avatarId)
   const [error, setError] = useState('')
 
   useAutoNotice(notice, clearNotice)
 
+  useEffect(() => {
+    setNickname(state.profile.nickname)
+    setBio(state.profile.bio)
+    setAvatarId(state.profile.avatarId)
+  }, [state.profile.nickname, state.profile.bio, state.profile.avatarId])
+
   const venue = getVenueById(state.equippedVenueId)
   const titleRank = Math.max(1, TITLE_OPTIONS.indexOf(state.profile.title) + 1)
 
   const dirty =
     nickname !== state.profile.nickname ||
-    title !== state.profile.title ||
     bio !== state.profile.bio ||
     avatarId !== state.profile.avatarId
 
@@ -54,13 +58,12 @@ export default function ProfilePage() {
       return
     }
     setError('')
-    saveProfile({ nickname: trimmed, title, bio: bio.trim(), avatarId })
+    saveProfile({ nickname: trimmed, bio: bio.trim(), avatarId })
   }
 
   function handleReset() {
     const profile = state.profile
     setNickname(profile.nickname)
-    setTitle(profile.title)
     setBio(profile.bio)
     setAvatarId(profile.avatarId)
     setError('')
@@ -156,14 +159,8 @@ export default function ProfilePage() {
 
                 <div className="form-field">
                   <label htmlFor="title">修复师等级</label>
-                  <select id="title" value={title} onChange={(event) => setTitle(event.target.value)}>
-                    {TITLE_OPTIONS.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                  <span className="field-hint">等级将随「知识挑战」的答题表现自动评定，当前可手动选择</span>
+                  <input id="title" type="text" value={state.profile.title} disabled />
+                  <span className="field-hint">等级由「知识挑战」首次答对的题目数量自动评定</span>
                 </div>
 
                 <div className="form-field">

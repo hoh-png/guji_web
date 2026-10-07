@@ -7,7 +7,8 @@
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
     "prisma:generate": "prisma generate",
-    "test:wallet-quiz": "node tests/wallet-quiz.integration.js"
+    "test:wallet-quiz": "node tests/wallet-quiz.integration.js",
+    "test:player": "node tests/player-restoration.integration.js"
   },
   "keywords": [],
   "author": "",

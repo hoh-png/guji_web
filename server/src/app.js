@@ -3,6 +3,7 @@ import cookieParser from "cookie-parser"
 import cors from "cors"
 import express from "express"
 import authRoutes from "./routes/auth.routes.js"
+import playerRoutes from "./routes/player.routes.js"
 import quizRoutes from "./routes/quiz.routes.js"
 import shopRoutes from "./routes/shop.routes.js"
 import walletRoutes from "./routes/wallet.routes.js"
@@ -24,6 +25,7 @@ app.get("/api/health", (_req, res) => {
 })
 
 app.use("/api/auth", authRoutes)
+app.use("/api/player", playerRoutes)
 app.use("/api/wallet", walletRoutes)
 app.use("/api/quiz", quizRoutes)
 app.use("/api/shop", shopRoutes)

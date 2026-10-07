@@ -1,4 +1,10 @@
-import { STARTER_SHOP_ITEMS, getShopItem } from "../constants/shop.js"
+import {
+  DEFAULT_DESK_ID,
+  DEFAULT_VENUE_ID,
+  STARTER_SHOP_ITEMS,
+  STARTER_TOOL_IDS,
+  getShopItem,
+} from "../constants/shop.js"
 import { ApiError } from "../lib/api-error.js"
 import { prisma } from "../lib/prisma.js"
 import { ensureWallet } from "./wallet.service.js"
@@ -19,6 +25,7 @@ function serializeState(wallet, ownerships) {
     ownedToolIds: ownerships.filter((item) => item.itemType === "tool").map((item) => item.itemId),
     ownedVenueIds: ownerships.filter((item) => item.itemType === "venue").map((item) => item.itemId),
     ownedDeskIds: ownerships.filter((item) => item.itemType === "desk").map((item) => item.itemId),
+    ownedRelicIds: ownerships.filter((item) => item.itemType === "relic").map((item) => item.itemId),
   }
 }
 
@@ -60,12 +67,39 @@ export function purchaseShopItem(userId, itemType, itemId) {
       throw error
     }
 
+    const balanceField = item.currency === "ingots" ? "ingots" : "coins"
     const walletUpdate = await tx.wallet.updateMany({
-      where: { userId, coins: { gte: item.priceCoins } },
-      data: { coins: { decrement: item.priceCoins } },
+      where: { userId, [balanceField]: { gte: item.price } },
+      data: { [balanceField]: { decrement: item.price } },
     })
     if (walletUpdate.count !== 1) {
-      throw new ApiError(400, "INSUFFICIENT_COINS", "铜钱不足")
+      throw new ApiError(
+        400,
+        item.currency === "ingots" ? "INSUFFICIENT_INGOTS" : "INSUFFICIENT_COINS",
+        item.currency === "ingots" ? "元宝不足" : "铜钱不足",
+      )
+    }
+
+    if (itemType === "relic") {
+      await tx.playerPreference.upsert({
+        where: { userId },
+        update: {},
+        create: {
+          userId,
+          equippedToolIds: STARTER_TOOL_IDS,
+          equippedVenueId: DEFAULT_VENUE_ID,
+          equippedDeskId: DEFAULT_DESK_ID,
+        },
+      })
+      await tx.playerPreference.updateMany({
+        where: { userId, equippedRelicId: null },
+        data: { equippedRelicId: itemId },
+      })
+      await tx.relicRestoration.upsert({
+        where: { userId_relicId: { userId, relicId: itemId } },
+        update: {},
+        create: { userId, relicId: itemId },
+      })
     }
 
     return readState(userId, tx)
@@ -96,8 +130,24 @@ export function resetDevelopmentShopState(userId) {
       where: { userId },
       data: { coins: 0, ingots: 0 },
     })
+    await tx.relicRestoration.deleteMany({ where: { userId } })
     await tx.shopOwnership.deleteMany({ where: { userId } })
     await ensureStarterOwnerships(userId, tx)
+    await tx.playerPreference.upsert({
+      where: { userId },
+      update: {
+        equippedToolIds: STARTER_TOOL_IDS,
+        equippedVenueId: DEFAULT_VENUE_ID,
+        equippedDeskId: DEFAULT_DESK_ID,
+        equippedRelicId: null,
+      },
+      create: {
+        userId,
+        equippedToolIds: STARTER_TOOL_IDS,
+        equippedVenueId: DEFAULT_VENUE_ID,
+        equippedDeskId: DEFAULT_DESK_ID,
+      },
+    })
     return readState(userId, tx)
   })
 }

@@ -20,6 +20,11 @@ function databaseOptions() {
     throw new Error("DATABASE_URL must include a database name")
   }
 
+  const localDatabase = ["localhost", "127.0.0.1", "::1"].includes(url.hostname)
+  const allowPublicKeyRetrieval =
+    process.env.DB_ALLOW_PUBLIC_KEY_RETRIEVAL === "true"
+    || (process.env.DB_ALLOW_PUBLIC_KEY_RETRIEVAL === undefined && localDatabase)
+
   return {
     host: url.hostname,
     port: Number(url.port || 3306),
@@ -27,6 +32,7 @@ function databaseOptions() {
     password: decodeURIComponent(url.password),
     database: decodeURIComponent(database),
     connectionLimit: 5,
+    allowPublicKeyRetrieval,
   }
 }
 
