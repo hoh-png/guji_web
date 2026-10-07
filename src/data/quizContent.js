@@ -13,6 +13,11 @@ export const quizContent = {
           type: 'paragraph',
           text: '每轮随机抽取 5 道文物与修复相关题目，答对得分、答错不得分，满分 100 分。全部答完可获得铜钱奖励，并查看你的"修复师等级"。',
         },
+        {
+          type: 'link-button',
+          label: '开始挑战 →',
+          to: 'CHALLENGE',
+        },
       ],
     },
     {
@@ -27,16 +32,6 @@ export const quizContent = {
             { text: '古建筑三大主要结构体系不包括？—— 悬索结构' },
             { text: '数字化修复常用的三维技术是？—— 三维扫描重建' },
           ],
-        },
-      ],
-    },
-    {
-      id: 'in-development',
-      title: '挑战功能开发中',
-      blocks: [
-        {
-          type: 'paragraph',
-          text: '题库与铜钱奖励系统正在开发，正式上线后即可开启你的知识对决之旅！',
         },
       ],
     },

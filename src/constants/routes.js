@@ -9,7 +9,8 @@ export const ROUTES = {
   HOME: '/index.html', // 功能主页
   SCIENCE: '/pages/science.html', // 智慧科普
   GAME: '/pages/game.html', // 修复游戏
-  QUIZ: '/pages/quiz.html', // 知识挑战
+  QUIZ: '/pages/quiz.html', // 知识挑战（规则与示例题目）
+  CHALLENGE: '/pages/challenge.html', // 知识挑战 · 关卡页（修复文物）
   SHOP: '/pages/shop.html', // 道具商店
   WORKSHOP: '/pages/workshop.html', // 修复文物（工坊）
   PROFILE: '/pages/profile.html', // 个人中心

@@ -10,6 +10,7 @@ import {
   SHOP_SLOT_COUNT,
   getSlotPosition,
 } from '../../data/shop.js'
+import { INGOT_PRICES, RELICS } from '../../data/relics.js'
 import usePageTitle from '../../hooks/usePageTitle.js'
 import useAutoNotice from '../../hooks/useAutoNotice.js'
 import ShopCell from './ShopCell.jsx'
@@ -49,7 +50,7 @@ function useBackTarget() {
 export default function ShopPage() {
   usePageTitle('道具商店 · 古迹修复系统')
 
-  const { state, notice, clearNotice, buyTool, buyVenue, buyDesk, equipTool, selectVenue, selectDesk, exchange } = usePlayer()
+  const { state, notice, clearNotice, buyTool, buyVenue, buyDesk, buyRelic, equipTool, selectVenue, selectDesk, exchange } = usePlayer()
   const goBack = useBackTarget()
 
   const [category, setCategory] = useState('tool')
@@ -94,7 +95,6 @@ export default function ShopPage() {
    */
   const toolSections = useMemo(() => {
     if (category !== 'tool') return []
-
     const sections = TOOLS.map((group) => ({
       id: group.groupId,
       title: group.group,
@@ -164,6 +164,36 @@ export default function ShopPage() {
     selectVenue,
   ])
 
+  /**
+   * 文物栏目：按地区分批，每批一行标题 + 若干卡片，整页滚动。
+   * 价格用元宝，买下即入馆藏（无「装备」概念）。
+   */
+  const relicSections = useMemo(() => {
+    if (category !== 'relic') return []
+
+    const ownedRelics = new Set(state.ownedRelicIds || [])
+    const groups = new Map()
+    for (const relic of RELICS) {
+      if (!groups.has(relic.region)) groups.set(relic.region, [])
+      groups.get(relic.region).push(relic)
+    }
+
+    return [...groups.entries()].map(([region, list]) => ({
+      id: `relic-${region}`,
+      title: region,
+      desc: `共 ${list.length} 件馆藏文物`,
+      items: list.map((relic) => ({
+        key: relic.id,
+        name: relic.name,
+        image: relic.image,
+        owned: ownedRelics.has(relic.id),
+        price: INGOT_PRICES[relic.grade] ?? 0,
+        currency: 'ingot',
+        onBuy: () => buyRelic(relic.id),
+      })),
+    }))
+  }, [category, state.ownedRelicIds, buyRelic])
+
   /** 其余栏目的商品列表 */
   const items = useMemo(() => {
     if (category === 'tool') return []
@@ -226,7 +256,10 @@ export default function ShopPage() {
       }))
     }
 
-    // 文物要用元宝购买，素材与数据尚未提供
+    /*
+     * 文物栏目在 relicSections 里另行分组渲染（按地区分批），
+     * 因此这里返回空数组。
+     */
     return []
   }, [
     category,
@@ -315,13 +348,13 @@ export default function ShopPage() {
         </nav>
 
         {/*
-          工具栏目：所有分类堆在一页里，从上往下滚动。
-          每个分类 = 一行标题 + 三张卡片（低级 / 中级 / 高级）。
+          工具与文物栏目：所有分类堆在一页里，从上往下滚动。
+          每组 = 一行标题 + 若干卡片。
         */}
-        {category === 'tool' ? (
+        {category === 'tool' || category === 'relic' ? (
           <div className="shop-scroll">
             <div className="shop-scroll-inner">
-              {toolSections.map((section) => (
+              {(category === 'tool' ? toolSections : relicSections).map((section) => (
                 <section className="shop-group" key={section.id}>
                   <div className="shop-group-head">
                     <span className="shop-group-title">{section.title}</span>

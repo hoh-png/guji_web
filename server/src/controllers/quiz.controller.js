@@ -1,5 +1,6 @@
 import {
   getHistory,
+  getProgress,
   getQuestion,
   listQuestions,
   submitAnswer,
@@ -86,6 +87,17 @@ export async function history(req, res, next) {
     return res.status(200).json({
       success: true,
       data: await getHistory(req.auth.userId),
+    })
+  } catch (error) {
+    return next(error)
+  }
+}
+
+export async function progress(req, res, next) {
+  try {
+    return res.status(200).json({
+      success: true,
+      data: await getProgress(req.auth.userId),
     })
   } catch (error) {
     return next(error)

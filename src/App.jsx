@@ -5,6 +5,7 @@ import HomePage from './pages/HomePage/HomePage.jsx'
 import SciencePage from './pages/SciencePage/SciencePage.jsx'
 import GamePage from './pages/GamePage/GamePage.jsx'
 import QuizPage from './pages/QuizPage/QuizPage.jsx'
+import ChallengePage from './pages/ChallengePage/ChallengePage.jsx'
 import ShopPage from './pages/ShopPage/ShopPage.jsx'
 import WorkshopPage from './pages/WorkshopPage/WorkshopPage.jsx'
 import ProfilePage from './pages/ProfilePage/ProfilePage.jsx'
@@ -35,6 +36,8 @@ export default function App() {
       {/* 科普与知识挑战 */}
       <Route path={ROUTES.SCIENCE} element={<SciencePage />} />
       <Route path={ROUTES.QUIZ} element={<QuizPage />} />
+      {/* 知识挑战 · 关卡页（修复文物）：整屏场景，不走子页面框架 */}
+      <Route path={ROUTES.CHALLENGE} element={<ChallengePage />} />
 
       {/* 修复玩法：玩法介绍页 + 修复工坊 */}
       <Route path={ROUTES.GAME} element={<GamePage />} />

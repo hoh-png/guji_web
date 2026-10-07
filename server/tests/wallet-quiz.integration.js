@@ -71,14 +71,15 @@ async function main() {
 
   const questions = await request("/api/quiz/questions")
   assert(questions.response.status === 200, "question list failed")
-  assert(questions.payload.data.length >= 5, "seeded question count is below five")
+  assert(questions.payload.data.length === 5, "active question count should be five")
+  assert(questions.payload.data.every((item) => item.reward.coins === 100), "quiz reward should be 100 coins")
   assert(!JSON.stringify(questions.payload).includes("correctAnswer"), "question list leaked correctAnswer")
 
   const firstQuestion = await prisma.question.findFirst({
-    where: { question: "青铜器主要由哪两类金属组成？" },
+    where: { question: '中国古建中有"墙倒屋不塌"的说法，主要原因是：', isActive: true },
   })
   const secondQuestion = await prisma.question.findFirst({
-    where: { question: "被誉为中国“瓷都”的城市是哪里？" },
+    where: { question: "下列屋顶形制中等级最高、用于最重要殿宇的是：", isActive: true },
   })
   assert(firstQuestion && secondQuestion, "seed questions were not found")
 
@@ -116,6 +117,7 @@ async function main() {
   assert(correct.payload.data.alreadyRewarded === false, "first reward marked as already received")
   assert(correct.payload.data.reward.coins === firstQuestion.rewardCoins, "coin reward mismatch")
   assert(correct.payload.data.reward.ingots === firstQuestion.rewardIngots, "ingot reward mismatch")
+  assert(correct.payload.data.explanation === firstQuestion.explanation, "answer explanation mismatch")
   results.correctAnswerReward = "passed"
 
   const beforeRepeat = await prisma.wallet.findUniqueOrThrow({ where: { userId } })
@@ -128,6 +130,14 @@ async function main() {
   assert(repeated.payload.data.reward.coins === 0 && repeated.payload.data.reward.ingots === 0, "repeat answer got reward")
   assert(afterRepeat.coins === beforeRepeat.coins && afterRepeat.ingots === beforeRepeat.ingots, "repeat answer changed wallet")
   results.repeatRewardProtection = "passed"
+
+  const progress = await request("/api/quiz/progress")
+  assert(progress.response.status === 200, "quiz progress read failed")
+  assert(
+    progress.payload.data.some((item) => item.questionId === firstQuestion.id),
+    "completed question is missing from progress",
+  )
+  results.progress = "passed"
 
   const beforeConcurrent = await prisma.wallet.findUniqueOrThrow({ where: { userId } })
   const concurrent = await Promise.all(

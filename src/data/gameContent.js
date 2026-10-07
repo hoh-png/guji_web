@@ -40,15 +40,5 @@ export const gameContent = {
         { type: 'link-button', label: '进入修复工坊 →', to: 'WORKSHOP' },
       ],
     },
-    {
-      id: 'in-development',
-      title: '正在开发中',
-      blocks: [
-        {
-          type: 'paragraph',
-          text: '文物素材与各道工序的交互逻辑正在加紧开发，敬请期待上线体验！',
-        },
-      ],
-    },
   ],
 }

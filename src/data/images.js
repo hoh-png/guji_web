@@ -46,10 +46,32 @@ const shopImages = [
   /* 货币兑换档位的配图：铜钱 / 元宝 各 5 档 */
   ...[1, 2, 3, 4, 5].map((n) => `/images/shop/raw-coin/coin-${n}.webp`),
   ...[1, 2, 3, 4, 5].map((n) => `/images/shop/raw-ingot/ingot-${n}.webp`),
+  /* 文物栏目：湖北与其他两批馆藏 */
+  ...[1, 2, 3, 4, 5, 6, 7].map((n) => `/images/shop/relics/hubei/hubei-${n}.webp`),
+  ...[1, 2, 3, 4, 5, 6, 7].map((n) => `/images/shop/relics/other/other-${n}.webp`),
 ]
 
+/* 知识挑战 · 关卡页 */
+const challengeImages = [
+  '/images/quiz/bg.png',
+  '/images/quiz/relic.png',
+  '/images/quiz/route.png',
+  ...[1, 2, 3, 4, 5].map((n) => `/images/quiz/piece-${n}.png`),
+]
+
+/* 智慧科普 · 卷轴纸与返回按钮 */
+const scienceImages = ['/images/science/science-bg.jpg', '/images/science/back.png']
+
 /** 全部图片 */
-export const ALL_IMAGES = [...toolImages, ...venueImages, ...deskImages, ...pageBackgrounds, ...shopImages]
+export const ALL_IMAGES = [
+  ...toolImages,
+  ...venueImages,
+  ...deskImages,
+  ...pageBackgrounds,
+  ...shopImages,
+  ...challengeImages,
+  ...scienceImages,
+]
 
 /**
  * 优先预热的图：主页背景 + 货币图标 + 场所 / 工作台 / 全部工具。
