@@ -1,6 +1,5 @@
-import { useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { getCurrentUser, logout } from '../../api/loginApi.js'
+import { logout } from '../../api/loginApi.js'
 import ModuleCard from '../../components/ModuleCard/ModuleCard.jsx'
 import CurrencyChip from '../../components/museum/CurrencyChip.jsx'
 import { usePlayer } from '../../context/PlayerContext.jsx'
@@ -26,18 +25,6 @@ const UTILITIES = [
 export default function HomePage() {
   usePageTitle('古迹修复系统 · 功能主页')
   const navigate = useNavigate()
-
-  useEffect(() => {
-    let cancelled = false
-
-    getCurrentUser().then((result) => {
-      if (!cancelled && !result.ok) navigate(ROUTES.LOGIN, { replace: true })
-    })
-
-    return () => {
-      cancelled = true
-    }
-  }, [navigate])
 
   async function handleLogout(event) {
     event.preventDefault()

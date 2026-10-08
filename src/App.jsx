@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import AppPreloader from './components/AppPreloader/AppPreloader.jsx'
+import AuthGuard from './components/AuthGuard/AuthGuard.jsx'
 import LoginPage from './pages/LoginPage/LoginPage.jsx'
 import HomePage from './pages/HomePage/HomePage.jsx'
 import SciencePage from './pages/SciencePage/SciencePage.jsx'
@@ -30,6 +31,8 @@ export default function App() {
       {/* 登录页 */}
       <Route path={ROUTES.LOGIN} element={<LoginPage />} />
 
+      {/* All business pages require an authenticated session. */}
+      <Route element={<AuthGuard />}>
       {/* 功能主页 */}
       <Route path={ROUTES.HOME} element={<HomePage />} />
 
@@ -46,6 +49,7 @@ export default function App() {
       {/* 道具商店与个人中心 */}
       <Route path={ROUTES.SHOP} element={<ShopPage />} />
       <Route path={ROUTES.PROFILE} element={<ProfilePage />} />
+      </Route>
 
       {/* 未匹配到的地址一律回到登录页，避免出现空白页 */}
       <Route path="*" element={<Navigate to={ROUTES.LOGIN} replace />} />

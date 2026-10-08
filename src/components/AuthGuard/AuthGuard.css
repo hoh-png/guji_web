@@ -1,0 +1,47 @@
+.auth-guard-loading {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at center, rgba(255, 252, 244, 0.92), rgba(243, 233, 210, 0.96)),
+    var(--paper);
+  font-size: 18px;
+  letter-spacing: 0.12em;
+}
+
+.auth-guard-seal {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  color: #fffaf0;
+  background: var(--brick);
+  border: 2px solid var(--brick-dark);
+  border-radius: 8px;
+  box-shadow: 0 5px 16px rgba(61, 43, 31, 0.2);
+  font-size: 26px;
+  animation: auth-guard-breathe 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes auth-guard-breathe {
+  from {
+    opacity: 0.55;
+    transform: scale(0.94);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-guard-seal {
+    animation: none;
+  }
+}

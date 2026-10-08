@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import InlineLink from '../../components/InlineLink/InlineLink.jsx'
 import Toast from '../../components/Toast/Toast.jsx'
 import {
@@ -21,6 +21,7 @@ import './LoginPage.css'
 export default function LoginPage() {
   usePageTitle('古迹修复系统 · 登录')
 
+  const location = useLocation()
   const navigate = useNavigate()
   const toastRef = useRef(null)
   const redirectTimerRef = useRef(null)
@@ -31,19 +32,25 @@ export default function LoginPage() {
   const [mode, setMode] = useState('login')
   const isRegister = mode === 'register'
 
+  const requestedPath = location.state?.from
+  const redirectTo =
+    typeof requestedPath === 'string' && requestedPath.startsWith('/') && !requestedPath.startsWith('//')
+      ? requestedPath
+      : ROUTES.HOME
+
   // 组件卸载时清掉待执行的跳转定时器，避免离开登录页后仍触发跳转
   useEffect(() => {
     let cancelled = false
 
     getCurrentUser().then((result) => {
-      if (!cancelled && result.ok) navigate(ROUTES.HOME, { replace: true })
+      if (!cancelled && result.ok) navigate(redirectTo, { replace: true })
     })
 
     return () => {
       cancelled = true
       if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current)
     }
-  }, [navigate])
+  }, [navigate, redirectTo])
 
   async function handleSubmit(event) {
     event.preventDefault()
@@ -57,7 +64,10 @@ export default function LoginPage() {
     toastRef.current?.show(result.tip)
 
     if (result.ok) {
-      redirectTimerRef.current = setTimeout(() => navigate(ROUTES.HOME), result.redirectDelay)
+      redirectTimerRef.current = setTimeout(
+        () => navigate(redirectTo, { replace: true }),
+        result.redirectDelay,
+      )
     }
   }
 
