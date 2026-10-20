@@ -79,7 +79,7 @@ MySQL / MariaDB（guji_web）
 ### 1. 获取代码
 
 ```bash
-git clone https://github.com/yusu255/guji_web.git
+git clone https://github.com/hoh-png/guji_web.git
 cd guji_web
 ```
 
@@ -103,6 +103,7 @@ npm install
 ```env
 DATABASE_URL="mysql://root:YOUR_URL_ENCODED_PASSWORD@localhost:3306/guji_web"
 PORT=3000
+HOST="127.0.0.1"
 JWT_SECRET="replace-with-a-random-secret-at-least-32-characters"
 NODE_ENV="development"
 FRONTEND_URL="http://localhost:5173"
@@ -114,6 +115,7 @@ FRONTEND_URL="http://localhost:5173"
 - 数据库密码中的特殊字符需要进行 URL 编码。
 - 默认 CORS 来源是 `http://localhost:5173`，开发时建议使用 `localhost` 打开前端，不要混用 `127.0.0.1`。
 - 前端默认请求 `http://localhost:3000/api`；需要修改时可设置 `VITE_API_URL`。
+- 后端默认只监听 `127.0.0.1`；确需由反向代理或容器网络访问时，明确设置 `HOST` 并配置相应网络限制。
 
 ### 5. 初始化数据库
 
@@ -444,6 +446,8 @@ guji_web/
 ```
 
 ## 测试与校验
+
+成年团队成员的隔离数据库、Tailscale HTTPS 内测环境及 A01—A05 验收步骤见 [内部测试操作手册](ops/internal-test/README.md)。不要把内测凭证文件提交到仓库。
 
 ### Prisma
 

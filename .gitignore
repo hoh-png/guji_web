@@ -35,3 +35,6 @@ _verify/shots
 _verify/*.json
 _verify/*.png
 _verify/*.log
+
+# 内部测试服务的进程号与运行日志
+ops/internal-test/.runtime/

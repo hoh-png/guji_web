@@ -20,6 +20,7 @@ import './LoginPage.css'
  */
 export default function LoginPage() {
   usePageTitle('古迹修复系统 · 登录')
+  const registrationEnabled = import.meta.env.VITE_ENABLE_REGISTRATION !== 'false'
 
   const location = useLocation()
   const navigate = useNavigate()
@@ -30,7 +31,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [remember, setRemember] = useState(false)
   const [mode, setMode] = useState('login')
-  const isRegister = mode === 'register'
+  const isRegister = registrationEnabled && mode === 'register'
 
   const requestedPath = location.state?.from
   const redirectTo =
@@ -122,7 +123,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="apply-link">
+        {registrationEnabled && <div className="apply-link">
           {isRegister ? '已经有账号？' : '还没有账号？'}
           <InlineLink
             onClick={() => {
@@ -134,7 +135,7 @@ export default function LoginPage() {
           >
             {isRegister ? '返回登录' : '立即注册修复师账号'}
           </InlineLink>
-        </div>
+        </div>}
       </div>
 
       <div className="copy">©2026 古迹修复数字化平台 文化遗产保护中心</div>

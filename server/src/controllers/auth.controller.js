@@ -43,6 +43,10 @@ function credentialsFrom(body = {}) {
 }
 
 export async function register(req, res, next) {
+  if (process.env.ALLOW_SELF_REGISTRATION === "false") {
+    return res.status(404).json({ message: "Not found" })
+  }
+
   const { username, password } = credentialsFrom(req.body)
 
   if (!username) {

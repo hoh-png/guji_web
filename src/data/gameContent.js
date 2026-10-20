@@ -2,6 +2,8 @@
  * 修复游戏页内容（对应原 pages/game.html）
  * 结构约定同 scienceContent.js
  */
+import { RESTORATION_STEPS } from './restoration.js'
+
 export const gameContent = {
   heading: '修复游戏',
   cards: [
@@ -11,21 +13,20 @@ export const gameContent = {
       blocks: [
         {
           type: 'paragraph',
-          text: '化身修复师，完成"清理—补配—做旧"三道工序，亲手让一件破损的瓷器重获新生。操作简单、趣味满满，还能学到专业修复知识。',
+          text: '化身修复师，从馆藏文物中选择一件，依次使用合适工具完成七道修复工序。每件文物的进度都会按账号保存。',
         },
       ],
     },
     {
-      id: 'three-steps',
-      title: '三道修复工序',
+      id: 'seven-steps',
+      title: '七道修复工序',
       blocks: [
         {
           type: 'list',
-          items: [
-            { lead: '清理：', text: '轻轻刷去器物表面的积尘与污渍。' },
-            { lead: '补配：', text: '选用合适的材料填补残缺部位。' },
-            { lead: '做旧：', text: '调整色泽，使补配部位与原件协调统一。' },
-          ],
+          items: RESTORATION_STEPS.map((step) => ({
+            lead: `${step.title}：`,
+            text: step.desc,
+          })),
         },
       ],
     },
@@ -35,7 +36,7 @@ export const gameContent = {
       blocks: [
         {
           type: 'paragraph',
-          text: '修复工坊已经开放：在商店兑换趁手的工具与场所后，即可进入工坊，把工具摆到操作台上开始作业。',
+          text: '修复工坊已经开放：在商店选购文物并准备好工具与场所后，即可进入工坊，按提示把正确工具拖到文物上。',
         },
         { type: 'link-button', label: '进入修复工坊 →', to: 'WORKSHOP' },
       ],
