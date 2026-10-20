@@ -26,6 +26,9 @@ const MIME = {
   '.jpeg': 'image/jpeg',
   '.webp': 'image/webp',
   '.svg': 'image/svg+xml',
+  /* 视频：赏藏品页要用 */
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
 }
 
 function send(res, status, body, type) {
@@ -33,14 +36,42 @@ function send(res, status, body, type) {
   res.end(body)
 }
 
-function stream(res, filePath, stat) {
+function stream(req, res, filePath, stat) {
   const ext = path.extname(filePath).toLowerCase()
   const isImage = ['.png', '.jpg', '.jpeg', '.webp', '.svg', '.gif'].includes(ext)
+  const isVideo = ['.mp4', '.webm'].includes(ext)
+  const type = MIME[ext] || 'application/octet-stream'
+
+  /*
+   * 视频要支持 Range 请求：浏览器（尤其 Safari 与无头模式）
+   * 会先发 Range 探测，服务端若不支持会直接拒绝播放。
+   */
+  const range = req.headers.range
+  if (isVideo && range) {
+    const match = /^bytes=(\d*)-(\d*)$/.exec(range.trim())
+    if (match) {
+      const start = match[1] === '' ? 0 : Number(match[1])
+      const end = match[2] === '' ? stat.size - 1 : Math.min(Number(match[2]), stat.size - 1)
+      if (Number.isFinite(start) && start <= end) {
+        res.writeHead(206, {
+          'Content-Type': type,
+          'Content-Range': `bytes ${start}-${end}/${stat.size}`,
+          'Accept-Ranges': 'bytes',
+          'Content-Length': end - start + 1,
+          'Cache-Control': 'public, max-age=3600',
+        })
+        fs.createReadStream(filePath, { start, end }).pipe(res)
+        return
+      }
+    }
+  }
+
   res.writeHead(200, {
-    'Content-Type': MIME[ext] || 'application/octet-stream',
+    'Content-Type': type,
     'Content-Length': stat.size,
+    ...(isVideo ? { 'Accept-Ranges': 'bytes' } : {}),
     // 图片允许缓存，便于验证预加载是否真的命中缓存；其余不缓存，避免拿到旧包
-    'Cache-Control': isImage ? 'public, max-age=31536000' : 'no-store',
+    'Cache-Control': isImage || isVideo ? 'public, max-age=31536000' : 'no-store',
   })
   fs.createReadStream(filePath).pipe(res)
 }
@@ -75,7 +106,7 @@ http
     }
 
     if (!found) return send(res, 404, 'not found: ' + urlPath)
-    stream(res, found.filePath, found.stat)
+    stream(req, res, found.filePath, found.stat)
   })
   .listen(PORT, '127.0.0.1', () => {
     console.log(`[serve-plain] http://127.0.0.1:${PORT}/  root=${ROOT}`)
