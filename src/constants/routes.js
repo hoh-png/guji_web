@@ -13,5 +13,6 @@ export const ROUTES = {
   CHALLENGE: '/pages/challenge.html', // 知识挑战 · 关卡页（修复文物）
   SHOP: '/pages/shop.html', // 道具商店
   WORKSHOP: '/pages/workshop.html', // 修复文物（工坊）
+  GALLERY: '/pages/gallery.html', // 赏藏品（藏品预览）
   PROFILE: '/pages/profile.html', // 个人中心
 }

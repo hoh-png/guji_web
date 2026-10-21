@@ -9,6 +9,7 @@ import QuizPage from './pages/QuizPage/QuizPage.jsx'
 import ChallengePage from './pages/ChallengePage/ChallengePage.jsx'
 import ShopPage from './pages/ShopPage/ShopPage.jsx'
 import WorkshopPage from './pages/WorkshopPage/WorkshopPage.jsx'
+import GalleryPage from './pages/GalleryPage/GalleryPage.jsx'
 import ProfilePage from './pages/ProfilePage/ProfilePage.jsx'
 import { ROUTES } from './constants/routes.js'
 
@@ -45,6 +46,8 @@ export default function App() {
       {/* 修复玩法：玩法介绍页 + 修复工坊 */}
       <Route path={ROUTES.GAME} element={<GamePage />} />
       <Route path={ROUTES.WORKSHOP} element={<WorkshopPage />} />
+      {/* 赏藏品：整屏视频预览 */}
+      <Route path={ROUTES.GALLERY} element={<GalleryPage />} />
 
       {/* 道具商店与个人中心 */}
       <Route path={ROUTES.SHOP} element={<ShopPage />} />

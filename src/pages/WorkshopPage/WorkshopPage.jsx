@@ -258,6 +258,9 @@ export default function WorkshopPage() {
           <Link className="btn-ghost" to={ROUTES.SHOP} state={{ from: ROUTES.WORKSHOP }}>
             道具商店
           </Link>
+          <Link className="btn-ghost" to={ROUTES.GALLERY}>
+            赏藏品
+          </Link>
           <Link className="btn-ghost" to={ROUTES.HOME}>
             返回主页
           </Link>
